@@ -491,9 +491,21 @@ window.addEventListener("lessonflow:cloud-history", function(event) {
 
 window.addEventListener("lessonflow:cloud-focus-items", function(event) {
     cloudFocusItems = Array.isArray(event.detail) ? event.detail : [];
-    if (selectedStudentRecord && mishaScreen.classList.contains("active")) renderFocusItemsTab(selectedStudentRecord);
+    renderCloudStudents();
+    if (selectedStudentRecord && mishaScreen.classList.contains("active")) renderStudentCard(selectedStudentRecord);
     if (selectedStudentRecord && lessonScreen.classList.contains("active")) renderLessonContext(selectedStudentRecord);
     if (selectedStudentRecord && lessonScreen.classList.contains("active")) renderRecommendedMaterials();
+});
+
+window.addEventListener("lessonflow:cloud-learning-program", function(event) {
+    activeLearningProgram = event.detail || null;
+    renderCloudStudents();
+    if (selectedStudentRecord && mishaScreen.classList.contains("active")) renderStudentCard(selectedStudentRecord);
+    if (selectedStudentRecord && lessonScreen.classList.contains("active")) {
+        renderLessonContext(selectedStudentRecord);
+        renderRecommendedMaterials();
+    }
+    renderLearningProgram();
 });
 
 window.addEventListener("lessonflow:cloud-materials", function(event) {
@@ -628,8 +640,9 @@ function renderCloudStudents() {
         addTextElement(card, "p", "card-label", [student.level, student.subject].filter(Boolean).join(" · ").toLocaleUpperCase("ru"));
         addTextElement(card, "h3", "", student.name);
         addTextElement(card, "p", "", "Учебник: " + (student.textbook || "не указан"));
-        addTextElement(card, "p", "", "Сейчас: " + (student.currentTopic || "тема не указана"));
-        addTextElement(card, "p", "attention", "Повторить: " + (student.repeatTopic || "—"));
+        const derived = selectedStudentDerivedState(student);
+        addTextElement(card, "p", "", "Сейчас: " + derived.current.topic);
+        addTextElement(card, "p", "attention", "Повторить: " + (derived.reviewTopics[0]?.title || "—") + (derived.reviewTopics.length > 1 ? " · ещё " + (derived.reviewTopics.length - 1) : ""));
         const actions = document.createElement("div"); actions.className = "student-card-actions";
         const open = addTextElement(actions, "button", "small-button", "Открыть ученика");
         open.type = "button"; open.addEventListener("click", function() { openStudentCard(student); });
@@ -1651,7 +1664,8 @@ function scoreMaterialForStudent(material, student, focusItems) {
             matchedFocusIds.push(focus.id);
         }
     });
-    [[student.repeatTopic, 3, "Для повторения"], [student.currentTopic, 3, "По текущей теме"]].forEach(function(rule) {
+    const derived = selectedStudentDerivedState(student);
+    derived.reviewTopics.filter(function(item) { return ["request", "legacy"].includes(item.source); }).map(function(item) { return [item.title, 3, "Для повторения"]; }).concat([[derived.current.topic, 3, "По текущей теме"]]).forEach(function(rule) {
         const value = normalizeMatchText(rule[0]); if (!value) return;
         if (source.tags.includes(value) || source.topic === value || source.title.includes(value)) {
             score += rule[1];
@@ -1697,8 +1711,8 @@ function renderRecommendedMaterials() {
     }
     const profile = selectedStudentRecord ? {
         level: selectedStudentRecord.level || "",
-        topic: selectedStudentRecord.currentTopic || "",
-        reviewTopics: selectedStudentRecord.repeatTopic ? [selectedStudentRecord.repeatTopic] : []
+        topic: selectedStudentDerivedState(selectedStudentRecord).current.topic,
+        reviewTopics: selectedStudentDerivedState(selectedStudentRecord).reviewTopics.map(function(item) { return item.title; })
     } : studentProfiles[selectedLessonStudent];
     if (!profile) return;
 
@@ -2024,9 +2038,10 @@ function openLessonFor(studentValue) {
     selectedLessonStudent = cloudStudent ? cloudStudent.id : studentName;
     const storedDraft = lessonDrafts[currentLessonDraftKey()]; if (storedDraft?.blocks) lessonPlans[selectedLessonStudent] = JSON.parse(JSON.stringify(storedDraft.blocks)); const headerState = document.querySelector(".lesson-header-state"); if (headerState) headerState.textContent = storedDraft ? "Статус: Черновик" : "Статус: Не начат";
     const profile = cloudStudent ? {
+        ...selectedStudentDerivedState(cloudStudent),
         meta: [[cloudStudent.level, cloudStudent.subject].filter(Boolean).join(" · "), cloudStudent.textbook ? "Учебник: " + cloudStudent.textbook : ""].filter(Boolean),
-        level: cloudStudent.level || "", topic: cloudStudent.currentTopic || "Урок", reviewTopics: cloudStudent.repeatTopic ? [cloudStudent.repeatTopic] : [],
-        context: [cloudStudent.currentTopic ? "Текущая тема: " + cloudStudent.currentTopic : "", cloudStudent.repeatTopic ? "Повторить: " + cloudStudent.repeatTopic : ""].filter(Boolean)
+        level: cloudStudent.level || "", topic: selectedStudentDerivedState(cloudStudent).current.topic, reviewTopics: selectedStudentDerivedState(cloudStudent).reviewTopics.map(function(item) { return item.title; }),
+        context: ["Текущая тема: " + selectedStudentDerivedState(cloudStudent).current.topic, selectedStudentDerivedState(cloudStudent).reviewTopics.length ? "Повторить: " + selectedStudentDerivedState(cloudStudent).reviewTopics.map(function(item) { return item.title; }).join(", ") : ""].filter(Boolean)
     } : studentProfiles[studentName] || {
         meta: ["Персональный урок"], level: "", topic: "", reviewTopics: [], context: ["Добавьте заметки об ученике"]
     };
@@ -2218,8 +2233,9 @@ function renderTeacherStudentFeedback() {
 function renderLessonContext(studentValue) {
     const cloudStudent = typeof studentValue === "object" ? studentValue : null;
     const studentName = cloudStudent ? cloudStudent.name : studentValue;
+    const derived = cloudStudent ? selectedStudentDerivedState(cloudStudent) : null;
     const profile = cloudStudent ? {
-        context: [cloudStudent.currentTopic ? "текущая тема: " + cloudStudent.currentTopic : "", cloudStudent.repeatTopic ? "повторить: " + cloudStudent.repeatTopic : ""].filter(Boolean)
+        context: ["текущая тема: " + derived.current.topic]
     } : studentProfiles[studentName];
     lessonContextList.replaceChildren();
     if (!profile) return;
@@ -2239,7 +2255,7 @@ function renderLessonContext(studentValue) {
             entry.appendChild(actions);
             lessonContextList.appendChild(entry);
         });
-        if (cloudProgress.repeatRequest && cloudStudent.currentTopic) addTextElement(lessonContextList, "li", "", "Ученик попросил ещё раз вернуться к " + cloudStudent.currentTopic);
+        derived.reviewTopics.filter(function(item) { return ["request", "legacy"].includes(item.source); }).forEach(function(item) { addTextElement(lessonContextList, "li", "", (item.source === "request" ? "Ученик попросил ещё раз вернуться к " : "Повторить: ") + item.title); });
     }
     const result = getLatestStudentResult(studentName);
     if (!result) return;
@@ -3092,6 +3108,41 @@ function renderFirebaseTab(panelName, renderContent) {
 const focusTypeLabels = { topic: "Тема", mistake: "Типичная ошибка", vocabulary: "Слово / лексика", pronunciation: "Произношение" };
 const focusStatusLabels = { repeat: "Нужно повторить", practice: "Тренируем", learning: "Сейчас изучаем", confident: "Уверенно" };
 
+function resolveProgramCurrentLesson(program) {
+    if (!program || program.status !== "active" || !Array.isArray(program.lessons) || !program.lessons.length) return null;
+    const lessons = program.lessons.slice().sort(function(a, b) { return Number(a.lessonNumber || 0) - Number(b.lessonNumber || 0); });
+    const available = lessons.filter(function(lesson) { return !["completed", "skipped"].includes(lesson.status); });
+    const declared = available.find(function(lesson) { return Number(lesson.lessonNumber) === Number(program.currentLessonNumber); });
+    return declared || available[0] || lessons.find(function(lesson) { return Number(lesson.lessonNumber) === Number(program.currentLessonNumber); }) || lessons[lessons.length - 1];
+}
+
+function lessonFocusTitle(lesson) {
+    return String(lesson?.mainFocus || lesson?.title || lesson?.topic || "").trim();
+}
+
+function resolveStudentCurrentTopic(student, program) {
+    const currentLesson = resolveProgramCurrentLesson(program);
+    return { topic: lessonFocusTitle(currentLesson) || String(student?.currentTopic || "").trim() || "Тема пока не указана", lesson: currentLesson, source: currentLesson ? "program" : "legacy" };
+}
+
+function resolveStudentReviewTopics(student, focusItems, progress, currentState) {
+    const normalized = new Set(); const topics = [];
+    const append = function(value, source) { const title = String(value || "").trim(); const key = title.replace(/\s+/g, " ").toLocaleLowerCase("ru"); if (!title || normalized.has(key)) return; normalized.add(key); topics.push({ title: title, source: source }); };
+    (focusItems || []).filter(function(item) { return item.status === "repeat"; }).forEach(function(item) { append(item.title, "repeat"); });
+    if (progress?.repeatRequest) append(currentState?.topic, "request");
+    (focusItems || []).filter(function(item) { return item.status === "practice"; }).forEach(function(item) { append(item.title, "practice"); });
+    if (!topics.length) append(student?.repeatTopic, "legacy");
+    return topics;
+}
+
+function selectedStudentDerivedState(student) {
+    const selected = Boolean(student?.id && selectedStudentRecord?.id === student.id);
+    const program = selected && activeLearningProgram?.studentDocId === student.id ? activeLearningProgram : null;
+    const current = resolveStudentCurrentTopic(student, program);
+    const reviewTopics = resolveStudentReviewTopics(student, selected ? cloudFocusItems : [], selected ? cloudProgress : null, current);
+    return { current: current, reviewTopics: reviewTopics, program: program };
+}
+
 function openFocusItemModal(item, defaults) {
     editingFocusItemId = item?.id || null;
     document.getElementById("focus-item-modal-title").textContent = item ? "Изменить запись" : "Добавить в карту";
@@ -3113,20 +3164,32 @@ async function addFocusItemOnce(title, status) {
 
 function renderFocusItemsTab(student) {
     renderFirebaseTab("repeat", function(content) {
+        const derived = selectedStudentDerivedState(student);
+        const normalizedCurrent = derived.current.topic.replace(/\s+/g, " ").toLocaleLowerCase("ru");
+        const requestAlreadyMapped = cloudFocusItems.some(function(item) { return String(item.title || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("ru") === normalizedCurrent; });
         const heading = document.createElement("div"); heading.className = "focus-heading";
         const headingText = document.createElement("div"); addTextElement(headingText, "h3", "", "Карта тем и трудных мест"); addTextElement(headingText, "p", "", "То, к чему стоит вернуться на следующих занятиях"); heading.appendChild(headingText);
         const addButton = addTextElement(heading, "button", "main-button", "+ Добавить"); addButton.type = "button"; addButton.addEventListener("click", function() { openFocusItemModal(null); }); heading.appendChild(addButton); content.appendChild(heading);
 
-        if (cloudProgress.repeatRequest && student.currentTopic) {
+        if (cloudProgress.repeatRequest && !requestAlreadyMapped && derived.current.topic !== "Тема пока не указана") {
             const request = document.createElement("section"); request.className = "focus-request-card";
-            addTextElement(request, "p", "", student.name + " попросил ещё раз вернуться к теме:"); addTextElement(request, "strong", "", student.currentTopic);
-            const addRequest = addTextElement(request, "button", "small-button", "Добавить в карту"); addRequest.type = "button"; addRequest.addEventListener("click", function() { addFocusItemOnce(student.currentTopic, "repeat"); }); request.appendChild(addRequest); content.appendChild(request);
+            addTextElement(request, "p", "", student.name + " попросил ещё раз вернуться к теме:"); addTextElement(request, "strong", "", derived.current.topic);
+            const addRequest = addTextElement(request, "button", "small-button", "Добавить в карту"); addRequest.type = "button"; addRequest.addEventListener("click", function() { addFocusItemOnce(derived.current.topic, "repeat"); }); request.appendChild(addRequest); content.appendChild(request);
         }
 
-        const source = document.createElement("section"); source.className = "focus-source-card"; addTextElement(source, "h3", "", "Из карточки ученика");
-        [["Текущая тема", student.currentTopic, "learning"], ["Повторить", student.repeatTopic, "repeat"]].forEach(function(item) {
-            if (!item[1]) return; const row = document.createElement("div"); addTextElement(row, "span", "", item[0] + ": " + item[1]); const add = addTextElement(row, "button", "small-button", "+ Добавить в карту"); add.type = "button"; add.addEventListener("click", function() { addFocusItemOnce(item[1], item[2]); }); row.appendChild(add); source.appendChild(row);
-        }); content.appendChild(source);
+        const appendManualSource = function(parent, label, value, status) { if (!value) return; const row = document.createElement("div"); addTextElement(row, "span", "", label + ": " + value); const add = addTextElement(row, "button", "small-button", "+ Добавить в карту"); add.type = "button"; add.addEventListener("click", function() { addFocusItemOnce(value, status); }); row.appendChild(add); parent.appendChild(row); };
+        const source = document.createElement("section"); source.className = "focus-source-card";
+        if (derived.current.source === "program") {
+            addTextElement(source, "h3", "", "Из учебной программы");
+            addTextElement(source, "p", "", "Текущий урок: " + derived.current.topic);
+            const manualValues = [String(student.currentTopic || "").trim() !== derived.current.topic ? ["Текущая тема", student.currentTopic, "learning"] : null, derived.reviewTopics.some(function(item) { return item.source === "legacy"; }) ? ["Повторить", student.repeatTopic, "repeat"] : null].filter(Boolean);
+            if (manualValues.length) { addTextElement(source, "h4", "", "Ручные данные карточки"); manualValues.forEach(function(item) { appendManualSource(source, item[0], item[1], item[2]); }); }
+        } else {
+            addTextElement(source, "h3", "", "Из карточки ученика");
+            appendManualSource(source, "Текущая тема", student.currentTopic, "learning");
+            appendManualSource(source, "Повторить", student.repeatTopic, "repeat");
+        }
+        content.appendChild(source);
 
         const filters = document.createElement("div"); filters.className = "focus-filters";
         [["all", "Все"], ["repeat", "Нужно повторить"], ["practice", "Тренируем"], ["learning", "Сейчас изучаем"], ["confident", "Уверенно"]].forEach(function(filter) {
@@ -3164,6 +3227,7 @@ function restoreDemoStudentCard() {
 }
 
 function renderStudentCard(student) {
+    const derived = selectedStudentDerivedState(student);
     const cardMain = document.querySelector("#misha-screen > main"); let headerAvatar = cardMain?.querySelector(".teacher-student-detail-avatar"); if (!headerAvatar && cardMain) { headerAvatar = document.createElement("img"); headerAvatar.className = "teacher-student-detail-avatar"; headerAvatar.alt = "Аватар ученика"; cardMain.prepend(headerAvatar); } if (headerAvatar) headerAvatar.src = stableTeacherStudentAvatar(student);
     document.getElementById("student-card-meta").textContent = [student.level, student.subject].filter(Boolean).join(" · ").toLocaleUpperCase("ru");
     document.getElementById("student-card-name").textContent = student.name;
@@ -3175,9 +3239,10 @@ function renderStudentCard(student) {
         messageButton.addEventListener("click", function() { openTeacherConversation(student); });
     }
     document.getElementById("student-card-textbook").textContent = "Учебник: " + (student.textbook || "не указан");
-    document.getElementById("student-card-current-topic").textContent = student.currentTopic || "Тема не указана";
-    document.getElementById("student-card-repeat-topic").textContent = student.repeatTopic || "Пока ничего";
-    document.getElementById("student-card-repeat-note").hidden = true;
+    document.getElementById("student-card-current-topic").textContent = derived.current.topic;
+    document.getElementById("student-card-repeat-topic").textContent = derived.reviewTopics[0]?.title || "Пока ничего";
+    const repeatNote = document.getElementById("student-card-repeat-note"); repeatNote.textContent = derived.reviewTopics.length > 1 ? "+ ещё " + (derived.reviewTopics.length - 1) : ""; repeatNote.hidden = derived.reviewTopics.length < 2;
+    const repeatCard = document.getElementById("student-card-repeat-topic")?.closest(".dashboard-card"); if (repeatCard) { repeatCard.tabIndex = 0; repeatCard.setAttribute("role", "button"); repeatCard.onclick = function() { document.querySelector('#misha-screen .student-tab[data-tab="repeat"]')?.click(); }; repeatCard.onkeydown = function(event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); repeatCard.click(); } }; }
 
     const lesson = publishedLessons[student.name] || null;
     const result = lesson ? getLatestStudentResult(student.name) : null;
@@ -3241,7 +3306,7 @@ function renderStudentCard(student) {
         const overallPercent = blocksTotal ? Math.round(completedTotal / blocksTotal * 100) : 0;
 
         const stats = document.createElement("div"); stats.className = "progress-stat-grid";
-        [[cloudLessonHistory.length + (lesson ? 1 : 0), "Уроков сохранено"], [completedTotal + " из " + blocksTotal, "Выполнено этапов"], [average + "%", "Среднее выполнение"], [student.currentTopic || "Не указана", "Текущая тема"]].forEach(function(item) {
+        [[cloudLessonHistory.length + (lesson ? 1 : 0), "Уроков сохранено"], [completedTotal + " из " + blocksTotal, "Выполнено этапов"], [average + "%", "Среднее выполнение"], [derived.current.topic, "Текущая тема"]].forEach(function(item) {
             const stat = document.createElement("article"); stat.className = "progress-stat-card";
             addTextElement(stat, "span", "", item[1]); addTextElement(stat, "strong", "", item[0]); stats.appendChild(stat);
         }); content.appendChild(stats);
@@ -3281,8 +3346,8 @@ function renderStudentCard(student) {
         repeatedLessons.forEach(function(historyLesson) { addTextElement(repeated, "p", "repeat-history-topic", "↻ " + (historyLesson.topic || "Урок")); }); content.appendChild(repeated);
 
         const focus = document.createElement("section"); focus.className = "progress-focus-card"; addTextElement(focus, "h3", "", "Сейчас в фокусе");
-        addTextElement(focus, "p", "", "Текущая тема: " + (student.currentTopic || "не указана"));
-        addTextElement(focus, "p", "", student.repeatTopic ? "Повторить: " + student.repeatTopic : "Дополнительное повторение пока не назначено");
+        addTextElement(focus, "p", "", "Текущая тема: " + derived.current.topic);
+        addTextElement(focus, "p", "", derived.reviewTopics.length ? "Повторить: " + derived.reviewTopics.map(function(item) { return item.title; }).join(" · ") : "Дополнительное повторение пока не назначено");
         if (cloudProgress.repeatRequest) addTextElement(focus, "p", "today-repeat", "Ученик попросил ещё раз вернуться к текущей теме"); content.appendChild(focus);
 
         if (!cloudLessonHistory.length) addTextElement(content, "p", "firebase-history-note progress-empty-history", "История прогресса начнёт формироваться после нескольких уроков.");
@@ -3686,7 +3751,7 @@ function exerciseMaterialFromUrl(url) {
         subject: selectedStudentRecord.subject,
         level: selectedStudentRecord.level,
         topic: findMoreFocusItem.title,
-        tags: [findMoreFocusItem.title, selectedStudentRecord.currentTopic].filter(Boolean).map(normalizeMatchText),
+        tags: [findMoreFocusItem.title, selectedStudentDerivedState(selectedStudentRecord).current.topic].filter(Boolean).map(normalizeMatchText),
         description: "Интерактивное упражнение по теме «" + findMoreFocusItem.title + "»",
         service: service,
         url: url,
@@ -3744,7 +3809,7 @@ function youtubeMaterialFromItem(item) {
         subject: selectedStudentRecord.subject,
         level: selectedStudentRecord.level,
         topic: findMoreFocusItem.title,
-        tags: [findMoreFocusItem.title, selectedStudentRecord.currentTopic].filter(Boolean).map(normalizeMatchText),
+        tags: [findMoreFocusItem.title, selectedStudentDerivedState(selectedStudentRecord).current.topic].filter(Boolean).map(normalizeMatchText),
         description: item.snippet.description || "",
         service: "YouTube",
         url: "https://www.youtube.com/watch?v=" + videoId,
@@ -3805,7 +3870,7 @@ youtubeSearchForm.addEventListener("submit", async function(event) {
 document.getElementById("add-found-resource").addEventListener("click", function() {
     if (!findMoreFocusItem || !selectedStudentRecord) return;
     const focusTitle = findMoreFocusItem.title; closeFindMorePanel(); showScreen(libraryScreen);
-    openMaterialModal(null, { subject: selectedStudentRecord.subject, level: selectedStudentRecord.level, topic: focusTitle, tags: [focusTitle, selectedStudentRecord.currentTopic].filter(Boolean) });
+    openMaterialModal(null, { subject: selectedStudentRecord.subject, level: selectedStudentRecord.level, topic: focusTitle, tags: [focusTitle, selectedStudentDerivedState(selectedStudentRecord).current.topic].filter(Boolean) });
 });
 document.getElementById("cancel-focus-item").addEventListener("click", function() { focusItemModal.hidden = true; });
 focusItemModal.addEventListener("click", function(event) { if (event.target === focusItemModal) focusItemModal.hidden = true; });
@@ -3904,7 +3969,7 @@ prepareMishaLesson.addEventListener("click", async function() {
     const student = selectedStudentRecord;
     preparingPlanLessonContext = null;
     if (student && isFirebaseMode()) {
-        try { const program = await window.lessonFlowCloud.getLearningProgram(student.id); const lesson = program?.lessons.find(function(item) { return Number(item.lessonNumber) === Number(program.currentLessonNumber); }); const linkedEvent = lesson?.scheduledEventId ? cloudScheduleEvents.find(function(item) { return item.id === lesson.scheduledEventId; }) : null; if (lesson) preparingPlanLessonContext = { programId: program.id, id: lesson.id, lessonNumber: lesson.lessonNumber, title: lesson.title, date: linkedEvent?.date || lesson.scheduledDate, startTime: linkedEvent?.startTime || lesson.scheduledStartTime }; }
+        try { const program = await window.lessonFlowCloud.getLearningProgram(student.id); const lesson = resolveProgramCurrentLesson(program); const linkedEvent = lesson?.scheduledEventId ? cloudScheduleEvents.find(function(item) { return item.id === lesson.scheduledEventId; }) : null; if (lesson) preparingPlanLessonContext = { programId: program.id, id: lesson.id, lessonNumber: lesson.lessonNumber, title: lessonFocusTitle(lesson), date: linkedEvent?.date || lesson.scheduledDate, startTime: linkedEvent?.startTime || lesson.scheduledStartTime }; }
         catch (error) { console.error("Current program lesson loading error:", error); }
     }
     openLessonFor(student || "Миша");

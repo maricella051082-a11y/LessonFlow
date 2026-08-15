@@ -50,6 +50,9 @@ let unsubscribeTeacherProgress = null;
 let unsubscribeStudents = null;
 let unsubscribeHistory = null;
 let unsubscribeFocusItems = null;
+let unsubscribeLearningProgram = null;
+let unsubscribeLearningProgramLessons = null;
+let learningProgramWatchToken = 0;
 let unsubscribeMaterials = null;
 let unsubscribeSources = null;
 let unsubscribeScheduleEvents = null;
@@ -84,11 +87,12 @@ function firestoreMessage(error) {
 }
 
 function stopFirestoreListeners() {
-    [unsubscribeLesson, unsubscribeProgress, unsubscribeTeacherLesson, unsubscribeTeacherProgress, unsubscribeStudents, unsubscribeHistory, unsubscribeFocusItems, unsubscribeMaterials, unsubscribeSources, unsubscribeScheduleEvents, unsubscribeSubmissions, unsubscribeConversations, unsubscribeMessages].forEach(function(unsubscribe) {
+    [unsubscribeLesson, unsubscribeProgress, unsubscribeTeacherLesson, unsubscribeTeacherProgress, unsubscribeStudents, unsubscribeHistory, unsubscribeFocusItems, unsubscribeLearningProgram, unsubscribeLearningProgramLessons, unsubscribeMaterials, unsubscribeSources, unsubscribeScheduleEvents, unsubscribeSubmissions, unsubscribeConversations, unsubscribeMessages].forEach(function(unsubscribe) {
         if (unsubscribe) unsubscribe();
     });
-    unsubscribeLesson = unsubscribeProgress = unsubscribeTeacherLesson = unsubscribeTeacherProgress = unsubscribeStudents = unsubscribeHistory = unsubscribeFocusItems = unsubscribeMaterials = unsubscribeSources = unsubscribeScheduleEvents = unsubscribeSubmissions = unsubscribeConversations = unsubscribeMessages = null;
+    unsubscribeLesson = unsubscribeProgress = unsubscribeTeacherLesson = unsubscribeTeacherProgress = unsubscribeStudents = unsubscribeHistory = unsubscribeFocusItems = unsubscribeLearningProgram = unsubscribeLearningProgramLessons = unsubscribeMaterials = unsubscribeSources = unsubscribeScheduleEvents = unsubscribeSubmissions = unsubscribeConversations = unsubscribeMessages = null;
     subscribedMessagesConversationId = null;
+    learningProgramWatchToken += 1;
     programAssignmentBootstrapped.clear();
     recurringScheduleBootstrapped.clear();
 }
@@ -363,6 +367,30 @@ function subscribeFocusItems(studentDocId) {
     unsubscribeFocusItems = onSnapshot(collection(db, "students", studentDocId, "focusItems"), function(snapshot) {
         const items = snapshot.docs.map(function(itemDoc) { return { id: itemDoc.id, ...itemDoc.data() }; });
         window.dispatchEvent(new CustomEvent("lessonflow:cloud-focus-items", { detail: items }));
+    }, reportFirestoreError);
+}
+
+function subscribeTeacherLearningProgram(studentDocId) {
+    const watchToken = ++learningProgramWatchToken;
+    if (unsubscribeLearningProgram) unsubscribeLearningProgram();
+    if (unsubscribeLearningProgramLessons) unsubscribeLearningProgramLessons();
+    unsubscribeLearningProgram = unsubscribeLearningProgramLessons = null;
+    if (!studentDocId || !auth.currentUser || currentProfile?.role !== "teacher") return;
+    unsubscribeLearningProgram = onSnapshot(query(collection(db, "learningPrograms"), where("teacherUid", "==", auth.currentUser.uid)), function(snapshot) {
+        if (watchToken !== learningProgramWatchToken) return;
+        const programDoc = snapshot.docs.find(function(item) { const data = item.data(); return data.studentDocId === studentDocId && data.status === "active"; });
+        if (unsubscribeLearningProgramLessons) unsubscribeLearningProgramLessons();
+        unsubscribeLearningProgramLessons = null;
+        if (!programDoc) {
+            window.dispatchEvent(new CustomEvent("lessonflow:cloud-learning-program", { detail: null }));
+            return;
+        }
+        const program = { id: programDoc.id, ...programDoc.data() };
+        unsubscribeLearningProgramLessons = onSnapshot(collection(db, "learningPrograms", programDoc.id, "lessons"), function(lessonsSnapshot) {
+            if (watchToken !== learningProgramWatchToken) return;
+            const lessons = lessonsSnapshot.docs.map(function(lessonDoc) { return { id: lessonDoc.id, ...lessonDoc.data() }; }).sort(function(a, b) { return Number(a.lessonNumber || 0) - Number(b.lessonNumber || 0); });
+            window.dispatchEvent(new CustomEvent("lessonflow:cloud-learning-program", { detail: { ...program, lessons: lessons } }));
+        }, reportFirestoreError);
     }, reportFirestoreError);
 }
 
@@ -964,6 +992,7 @@ window.lessonFlowCloud = {
         if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) return;
         if (studentUid) subscribeTeacherStudentData(studentUid);
         if (studentDocId) subscribeFocusItems(studentDocId);
+        if (studentDocId) subscribeTeacherLearningProgram(studentDocId);
     },
     async saveFocusItem(studentDocId, itemId, item) {
         if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) throw new Error("not-authenticated-teacher");
