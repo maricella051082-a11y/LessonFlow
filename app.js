@@ -3292,6 +3292,7 @@ function restoreDemoStudentCard() {
         "student-card-last-lesson-date": demoStudentOverview.lessonDate, "student-card-last-lesson-topic": demoStudentOverview.lessonTopic
     }).forEach(function(entry) { document.getElementById(entry[0]).textContent = entry[1]; });
     document.getElementById("student-card-repeat-note").hidden = false;
+    document.getElementById("student-card-homework-timing").hidden = true;
     ["lessons", "repeat", "homework", "progress"].forEach(function(panelName) {
         const panel = document.querySelector('[data-tab-panel="' + panelName + '"]');
         const dynamic = panel.querySelector(".firebase-tab-content");
@@ -3324,6 +3325,14 @@ function renderStudentCard(student) {
     const latestHomework = homework[homework.length - 1];
     document.getElementById("student-card-homework-title").textContent = latestHomework ? (latestHomework.title || "Домашнее задание") : "Домашнее задание не задано";
     document.getElementById("student-card-homework-description").textContent = latestHomework ? (latestHomework.description || "Описание не указано") : "";
+    const homeworkTimingSummary = document.getElementById("student-card-homework-timing");
+    if (latestHomework) {
+        const timing = homeworkTiming(lesson, latestHomework);
+        const parts = [];
+        if (timing.assignedAt) parts.push("Назначено: " + homeworkDateLabel(timing.assignedAt, false));
+        parts.push(timing.dueAt ? "До: " + homeworkDateLabel(timing.dueAt, true) : "До следующего занятия");
+        homeworkTimingSummary.textContent = parts.join(" · "); homeworkTimingSummary.hidden = false;
+    } else { homeworkTimingSummary.textContent = ""; homeworkTimingSummary.hidden = true; }
     document.getElementById("student-card-last-lesson-date").textContent = lesson ? formatLessonDate(lesson.date) : "Новый урок пока не опубликован";
     document.getElementById("student-card-last-lesson-topic").textContent = lesson ? lesson.topic : "";
 
