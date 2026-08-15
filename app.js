@@ -2340,10 +2340,27 @@ function formatVocabularyStartDate(value) {
     return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date) : "";
 }
 
+function renderStudentVocabularyStreak() {
+    const value = document.getElementById("student-streak-value");
+    if (!value) return;
+    const note = value.parentElement?.querySelector("small");
+    const vocabulary = studentDashboardData.vocabulary;
+    if (!vocabulary?.assignment) {
+        value.textContent = "";
+        if (note) note.textContent = "Серия начнётся с первой тренировки";
+        return;
+    }
+    const streakDays = Math.max(0, Number(vocabulary.streakDays || 0));
+    const last = streakDays % 10;
+    const lastTwo = streakDays % 100;
+    value.textContent = streakDays + " " + (lastTwo >= 11 && lastTwo <= 14 ? "дней" : last === 1 ? "день" : last >= 2 && last <= 4 ? "дня" : "дней");
+    if (note) note.textContent = "Продолжай в своём темпе";
+}
+
 function renderStudentDashboard() {
     const lesson = publishedLessons[firebaseProfile?.name || "Миша"] || publishedLessons["Миша"];
     studentPublishedSummary.replaceChildren();
-    const streakDays = Math.max(0, Number(firebaseProfile?.streakDays || 0)); const streakLast = streakDays % 10; const streakLastTwo = streakDays % 100; document.getElementById("student-streak-value").textContent = streakDays + " " + (streakLastTwo >= 11 && streakLastTwo <= 14 ? "дней" : streakLast === 1 ? "день" : streakLast >= 2 && streakLast <= 4 ? "дня" : "дней"); const points = Number(firebaseProfile?.points); const pointsChip = document.querySelector("#student-screen .student-stars"); if (Number.isFinite(points)) { document.getElementById("student-points-value").textContent = points; pointsChip.hidden = false; } else pointsChip.hidden = true;
+    renderStudentVocabularyStreak();
     const dashboardDate = document.getElementById("student-dashboard-date"); if (dashboardDate) dashboardDate.textContent = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
     const now = new Date(); const nowKey = localDateKey(now); const nowTime = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
     const futureEvents = (studentDashboardData.events || []).filter(function(event) { return event.status !== "cancelled" && (event.date > nowKey || event.date === nowKey && event.startTime >= nowTime); }).sort(function(a, b) { return (a.date + a.startTime).localeCompare(b.date + b.startTime); });
@@ -2568,7 +2585,7 @@ function renderStudentProgressScreen(container) {
     const total = Number(program?.totalLessons || lessons.length || 60);
     const completedTasks = cloudSubmissions.filter(function(item) { return ["submitted","verified"].includes(item.status); }).length + (cloudProgress.completedBlockIds || []).length;
     const completedClasses = (studentDashboardData.events || []).filter(function(item) { return item.status === "completed"; }).length;
-    const vocabulary = studentDashboardData.vocabulary?.assignment || {}; const vocabularyMastered = Number(vocabulary.masteredCount || 0); const streak = Math.max(0, Number(firebaseProfile?.streakDays || 0));
+    const vocabulary = studentDashboardData.vocabulary?.assignment || {}; const vocabularyMastered = Number(vocabulary.masteredCount || 0); const streak = Math.max(0, Number(studentDashboardData.vocabulary?.streakDays || 0));
     const metrics = [[completedClasses, "Завершённых занятий"], [completedLessons + " из " + total, "Уроков программы"], [completedTasks, "Заданий выполнено"]];
     if (vocabularyMastered || Number(vocabulary.totalCards || 0)) metrics.push([vocabularyMastered, "Слов освоено"]); if (streak) metrics.push([streak + " дней", "Серия успеха"]);
     const cards = document.createElement("div"); cards.className = "student-metric-grid"; metrics.forEach(function(item) { const card = document.createElement("article"); addTextElement(card, "strong", "", item[0]); addTextElement(card, "span", "", item[1]); cards.appendChild(card); }); container.appendChild(cards);
@@ -2689,7 +2706,7 @@ async function submitVocabularyAnswer(card, result, actions) {
 }
 async function finishVocabularySession() {
     document.getElementById("vocabulary-trainer-content").classList.remove("has-flashcard");
-    cancelVocabularySpeech(); await window.lessonFlowCloud.completeVocabularySession(activeVocabularySession, { total: activeVocabularySession.cards.length, ...vocabularySessionResults }); localStorage.removeItem(vocabularySessionStorageKey(activeVocabularySession)); const content = document.getElementById("vocabulary-trainer-content"); content.replaceChildren(); content.classList.add("vocabulary-finish-card"); document.getElementById("vocabulary-trainer-progress").textContent = activeVocabularySession.cards.length + " / " + activeVocabularySession.cards.length; document.getElementById("vocabulary-trainer-progress-fill").style.width = "100%"; document.getElementById("vocabulary-session-indicator").replaceChildren(); addTextElement(content, "div", "vocabulary-finish-mark", "✓"); addTextElement(content, "h2", "", "Готово на сегодня"); addTextElement(content, "p", "vocabulary-finish-lead", activeVocabularySession.cards.length + " карточки пройдено"); const summary = document.createElement("div"); summary.className = "vocabulary-finish-summary"; [[vocabularySessionResults.know, "Знаю"], [vocabularySessionResults.hard, "Сомневаюсь"], [vocabularySessionResults.again, "Нужно повторить"]].forEach(function(item) { const box = document.createElement("div"); addTextElement(box, "strong", "", item[0]); addTextElement(box, "span", "", item[1]); summary.appendChild(box); }); content.appendChild(summary); addTextElement(content, "p", "vocabulary-finish-note", vocabularySessionResults.know === activeVocabularySession.cards.length ? "Отличная сессия. Все карточки вспомнились уверенно." : "Следующая короткая сессия — завтра."); const home = addTextElement(content, "button", "vocabulary-finish-home", "Вернуться на главную"); home.type = "button"; home.addEventListener("click", returnFromVocabularyTrainer); vocabularyAnswerBusy = false;
+    cancelVocabularySpeech(); const completion = await window.lessonFlowCloud.completeVocabularySession(activeVocabularySession, { total: activeVocabularySession.cards.length, ...vocabularySessionResults }); activeVocabularySession = { ...activeVocabularySession, status: "completed", completedToday: true, streakDays: completion.streakDays }; studentDashboardData.vocabulary = activeVocabularySession; renderStudentVocabularyStreak(); localStorage.removeItem(vocabularySessionStorageKey(activeVocabularySession)); const content = document.getElementById("vocabulary-trainer-content"); content.replaceChildren(); content.classList.add("vocabulary-finish-card"); document.getElementById("vocabulary-trainer-progress").textContent = activeVocabularySession.cards.length + " / " + activeVocabularySession.cards.length; document.getElementById("vocabulary-trainer-progress-fill").style.width = "100%"; document.getElementById("vocabulary-session-indicator").replaceChildren(); addTextElement(content, "div", "vocabulary-finish-mark", "✓"); addTextElement(content, "h2", "", "Готово на сегодня"); addTextElement(content, "p", "vocabulary-finish-lead", activeVocabularySession.cards.length + " карточки пройдено"); const summary = document.createElement("div"); summary.className = "vocabulary-finish-summary"; [[vocabularySessionResults.know, "Знаю"], [vocabularySessionResults.hard, "Сомневаюсь"], [vocabularySessionResults.again, "Нужно повторить"]].forEach(function(item) { const box = document.createElement("div"); addTextElement(box, "strong", "", item[0]); addTextElement(box, "span", "", item[1]); summary.appendChild(box); }); content.appendChild(summary); addTextElement(content, "p", "vocabulary-finish-note", vocabularySessionResults.know === activeVocabularySession.cards.length ? "Отличная сессия. Все карточки вспомнились уверенно." : "Следующая короткая сессия — завтра."); const home = addTextElement(content, "button", "vocabulary-finish-home", "Вернуться на главную"); home.type = "button"; home.addEventListener("click", returnFromVocabularyTrainer); vocabularyAnswerBusy = false;
 }
 async function returnFromVocabularyTrainer() { cancelVocabularySpeech(); showScreen(studentScreen); try { studentDashboardData.vocabulary = await window.lessonFlowCloud.getStudentVocabularySession(firebaseProfile.uid); studentDashboardData.vocabularyError = null; } catch (error) { studentDashboardData.vocabularyError = error.code || "unknown"; } showStudentSection("home"); }
 document.getElementById("exit-vocabulary-trainer").addEventListener("click", function() { if (vocabularyTrainerMode === "free-review") returnFromFreeVocabularyReview(); else returnFromVocabularyTrainer(); });

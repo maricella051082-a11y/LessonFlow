@@ -1,4 +1,5 @@
 import { auth, db, firebaseConfig } from "./firebase.js?v=20260815-student-account";
+import { vocabularyStreakFromSessions } from "./vocabulary-streak.js?v=20260815";
 import { deleteApp, initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import {
     createUserWithEmailAndPassword,
@@ -609,6 +610,12 @@ async function loadProgramCards(programId, cardIds) {
     }))).filter(Boolean);
 }
 
+async function loadVocabularyStreak(studentUid, programId) {
+    const sessionsSnapshot = await getDocs(collection(db, "studentVocabulary", studentUid, "sessions"));
+    const sessions = sessionsSnapshot.docs.map(function(item) { return item.data(); });
+    return { sessionsSnapshot, streakDays: vocabularyStreakFromSessions(sessions, programId) };
+}
+
 async function buildVocabularySession(studentUid, localDate = new Date()) {
     const requestedDate = localDateKey(localDate);
     const assignmentSnapshot = await getDoc(doc(db, "studentVocabulary", studentUid));
@@ -619,20 +626,20 @@ async function buildVocabularySession(studentUid, localDate = new Date()) {
     const programSnapshot = await getDoc(doc(db, "vocabularyPrograms", programId));
     if (!programSnapshot.exists()) throw new Error("vocabulary-program-not-found");
     const program = { id: programSnapshot.id, ...programSnapshot.data() };
+    const streak = await loadVocabularyStreak(studentUid, programId);
     const dayResult = getVocabularyProgramDay({ ...assignment, totalStudyDays: program.totalStudyDays }, requestedDate);
     let date = requestedDate;
     let existingDebugSession = null;
     if (dayResult.debug) {
-        const sessionsSnapshot = await getDocs(collection(db, "studentVocabulary", studentUid, "sessions"));
-        existingDebugSession = sessionsSnapshot.docs.find(function(item) { return Number(item.data().dayIndex) === Number(dayResult.dayIndex); }) || null;
+        existingDebugSession = streak.sessionsSnapshot.docs.find(function(item) { return Number(item.data().dayIndex) === Number(dayResult.dayIndex); }) || null;
         const startDate = assignment.startDate?.toDate ? localDateKey(assignment.startDate.toDate()) : localDateKey(assignment.startDate || "");
         date = existingDebugSession?.data().date || addLocalDays(startDate, Number(dayResult.dayIndex) - 1) || requestedDate;
     }
-    if (dayResult.status !== "active") return { assignment, program, date, dayIndex: dayResult.dayIndex, programStatus: dayResult.status, completedToday: false, cards: [], newCards: [], reviewCards: [], difficultCards: [], totalCards: 0, newCount: 0, reviewCount: 0 };
+    if (dayResult.status !== "active") return { assignment, program, date, dayIndex: dayResult.dayIndex, programStatus: dayResult.status, streakDays: streak.streakDays, completedToday: false, cards: [], newCards: [], reviewCards: [], difficultCards: [], totalCards: 0, newCount: 0, reviewCount: 0 };
     const dayIndex = dayResult.dayIndex;
     const dayId = "D" + String(dayIndex).padStart(3, "0");
     const daySnapshot = await getDoc(doc(db, "vocabularyPrograms", programId, "dailyPlan", dayId));
-    if (!daySnapshot.exists()) return { assignment, program, date, dayIndex, missingDailyPlan: true, completedToday: false, cards: [] };
+    if (!daySnapshot.exists()) return { assignment, program, date, dayIndex, streakDays: streak.streakDays, missingDailyPlan: true, completedToday: false, cards: [] };
     const day = { id: daySnapshot.id, ...daySnapshot.data() };
     const statesSnapshot = await getDocs(collection(db, "studentVocabulary", studentUid, "cards"));
     const states = statesSnapshot.docs.map(function(item) { const data = { id: item.id, ...item.data() }; return { ...data, state: vocabularyCardState(data) }; });
@@ -662,7 +669,7 @@ async function buildVocabularySession(studentUid, localDate = new Date()) {
     const cardMap = new Map(cards.map(function(card) { return [card.cardId || card.id, card]; }));
     const orderedCards = persistedOrder.map(function(cardId, index) { const card = cardMap.get(cardId); if (!card) return null; return { ...card, direction: (day.sessionType === "mastery-check" || day.sessionType === "weekly-mix") && index % 2 ? "ru-en" : "en-ru", due: (persisted.reviewCardIds || reviewCardIds).includes(cardId) }; }).filter(Boolean);
     const answers = persisted.answers || {};
-    return { assignment, program, day, date, sessionId: sessionRef.id, dayIndex, weekNumber: Number(persisted.weekNumber || day.weekNumber || 1), sessionType: persisted.sessionType || day.sessionType || "new-review", week: null, cards: orderedCards, newCardIds: persisted.newCardIds || newCardIds, reviewCardIds: persisted.reviewCardIds || reviewCardIds, newCards: orderedCards.filter(function(card) { return (persisted.newCardIds || newCardIds).includes(card.cardId || card.id); }), reviewCards: orderedCards.filter(function(card) { return (persisted.reviewCardIds || reviewCardIds).includes(card.cardId || card.id); }), difficultCards: orderedCards.filter(function(card) { return stateDifficulty(statesById.get(card.cardId || card.id) || {}) > 0; }), totalCards: Number(persisted.totalCards ?? persistedOrder.length), newCount: (persisted.newCardIds || newCardIds).length, reviewCount: (persisted.reviewCardIds || reviewCardIds).length, dueCount: (persisted.reviewCardIds || reviewCardIds).length, newCardsPaused, pauseReason: newCardsPaused ? "Сначала повторим накопившиеся карточки" : "", answers, status: persisted.status || "ready", answeredCards: Number(persisted.answeredCards ?? Object.keys(answers).length), againCount: Number(persisted.againCount ?? persisted.summary?.again ?? 0), hardCount: Number(persisted.hardCount ?? persisted.summary?.hard ?? 0), knowCount: Number(persisted.knowCount ?? persisted.summary?.know ?? 0), summary: persisted.summary || null, completedAt: persisted.completedAt || null, completedToday: persisted.status === "completed", debugDayIndex: dayResult.debug ? dayIndex : null };
+    return { assignment, program, day, date, sessionId: sessionRef.id, dayIndex, streakDays: streak.streakDays, weekNumber: Number(persisted.weekNumber || day.weekNumber || 1), sessionType: persisted.sessionType || day.sessionType || "new-review", week: null, cards: orderedCards, newCardIds: persisted.newCardIds || newCardIds, reviewCardIds: persisted.reviewCardIds || reviewCardIds, newCards: orderedCards.filter(function(card) { return (persisted.newCardIds || newCardIds).includes(card.cardId || card.id); }), reviewCards: orderedCards.filter(function(card) { return (persisted.reviewCardIds || reviewCardIds).includes(card.cardId || card.id); }), difficultCards: orderedCards.filter(function(card) { return stateDifficulty(statesById.get(card.cardId || card.id) || {}) > 0; }), totalCards: Number(persisted.totalCards ?? persistedOrder.length), newCount: (persisted.newCardIds || newCardIds).length, reviewCount: (persisted.reviewCardIds || reviewCardIds).length, dueCount: (persisted.reviewCardIds || reviewCardIds).length, newCardsPaused, pauseReason: newCardsPaused ? "Сначала повторим накопившиеся карточки" : "", answers, status: persisted.status || "ready", answeredCards: Number(persisted.answeredCards ?? Object.keys(answers).length), againCount: Number(persisted.againCount ?? persisted.summary?.again ?? 0), hardCount: Number(persisted.hardCount ?? persisted.summary?.hard ?? 0), knowCount: Number(persisted.knowCount ?? persisted.summary?.know ?? 0), summary: persisted.summary || null, completedAt: persisted.completedAt || null, completedToday: persisted.status === "completed", debugDayIndex: dayResult.debug ? dayIndex : null };
 }
 
 async function submitVocabularyAnswer({ studentUid, cardId, sessionId, answer, direction }) {
@@ -752,11 +759,12 @@ window.lessonFlowCloud = {
     async completeVocabularySession(session, summary) {
         if (!auth.currentUser || currentProfile?.role !== "student" || demoMode) throw new Error("not-authenticated-student");
         const studentUid = auth.currentUser.uid; const assignmentRef = doc(db, "studentVocabulary", studentUid); const snapshot = await getDoc(assignmentRef); if (!snapshot.exists()) throw new Error("student-vocabulary-not-found"); const assignment = snapshot.data();
-        const sessionId = session?.sessionId || localDateKey(); const sessionDate = session?.date || localDateKey(); const dayIndex = Number(session?.dayIndex || session?.day?.dayIndex || assignment.currentDayIndex || 1); const sessionRef = doc(db, "studentVocabulary", studentUid, "sessions", sessionId); const sessionSnapshot = await getDoc(sessionRef); if (sessionSnapshot.exists() && sessionSnapshot.data().status === "completed") return { alreadyCompleted: true };
+        const programId = vocabularyProgramId(assignment); const sessionId = session?.sessionId || localDateKey(); const sessionDate = session?.date || localDateKey(); const dayIndex = Number(session?.dayIndex || session?.day?.dayIndex || assignment.currentDayIndex || 1); const sessionRef = doc(db, "studentVocabulary", studentUid, "sessions", sessionId); const sessionSnapshot = await getDoc(sessionRef); if (sessionSnapshot.exists() && sessionSnapshot.data().status === "completed") return { alreadyCompleted: true, streakDays: (await loadVocabularyStreak(studentUid, programId)).streakDays };
         const statesSnapshot = await getDocs(collection(db, "studentVocabulary", studentUid, "cards")); const states = statesSnapshot.docs.map(function(item) { const data = item.data(); return { ...data, state: vocabularyCardState(data) }; }).filter(function(item) { return item.state !== "new"; });
         const counts = { newCount: Math.max(0, Number(assignment.totalCards || assignment.activeCardsCount || 0) - states.length), learningCount: states.filter(function(item) { return item.state === "learning"; }).length, reviewCount: states.filter(function(item) { return item.state === "review"; }).length, masteredCount: states.filter(function(item) { return item.state === "mastered"; }).length };
         await setDoc(sessionRef, { status: "completed", answeredCards: Number(summary.total || 0), againCount: Number(summary.again || 0), hardCount: Number(summary.hard || 0), knowCount: Number(summary.know || 0), completedAt: serverTimestamp(), summary, updatedAt: serverTimestamp() }, { merge: true });
-        await setDoc(assignmentRef, { currentDayIndex: dayIndex, currentWeekNumber: Number(sessionSnapshot.data()?.weekNumber || assignment.currentWeekNumber || 1), lastSessionDate: sessionDate, lastSessionAt: serverTimestamp(), lastCompletedDayIndex: dayIndex, lastCompletedStudyDayIndex: dayIndex, lastCompletedAt: serverTimestamp(), lastSessionSummary: summary, ...counts, updatedAt: serverTimestamp() }, { merge: true }); return { alreadyCompleted: false };
+        await setDoc(assignmentRef, { currentDayIndex: dayIndex, currentWeekNumber: Number(sessionSnapshot.data()?.weekNumber || assignment.currentWeekNumber || 1), lastSessionDate: sessionDate, lastSessionAt: serverTimestamp(), lastCompletedDayIndex: dayIndex, lastCompletedStudyDayIndex: dayIndex, lastCompletedAt: serverTimestamp(), lastSessionSummary: summary, ...counts, updatedAt: serverTimestamp() }, { merge: true });
+        return { alreadyCompleted: false, streakDays: (await loadVocabularyStreak(studentUid, programId)).streakDays };
     },
     async getSources() {
         if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) return [];
