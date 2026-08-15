@@ -118,8 +118,15 @@ async function ensureMessagingConversation(context) {
     if (!teacherUid || !studentUid || !studentDocId) throw new Error("messaging-relationship-missing");
     const conversationId = messagingConversationId(teacherUid, studentUid);
     const reference = doc(db, "conversations", conversationId);
-    const snapshot = await getDoc(reference);
-    if (!snapshot.exists()) {
+    try {
+        const snapshot = await getDoc(reference);
+        if (snapshot.exists()) return conversationId;
+    } catch (error) {
+        // Rules intentionally deny reads of missing conversations. Creation is
+        // still protected by participant, relationship and deterministic-ID checks.
+        if (error.code !== "permission-denied") throw error;
+    }
+    try {
         await setDoc(reference, {
             teacherUid: teacherUid,
             studentUid: studentUid,
@@ -134,6 +141,16 @@ async function ensureMessagingConversation(context) {
             teacherLastReadAt: null,
             studentLastReadAt: null
         });
+    } catch (createError) {
+        // The other participant may have created the conversation after our
+        // initial read. Accept only a conversation that is now readable.
+        try {
+            const retrySnapshot = await getDoc(reference);
+            if (retrySnapshot.exists()) return conversationId;
+        } catch (_) {
+            // Preserve the create failure for genuine relationship/permission errors.
+        }
+        throw createError;
     }
     return conversationId;
 }

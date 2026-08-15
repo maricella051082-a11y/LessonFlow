@@ -60,6 +60,27 @@ function sendMessageBatch(db, conversationId, senderUid, text, recipientCounter)
   return batch.commit();
 }
 
+async function ensureConversationForFirstContact(db, teacherUid, studentUid, studentDocId) {
+  const conversationId = `${teacherUid}__${studentUid}`;
+  const reference = doc(db, "conversations", conversationId);
+  try {
+    const snapshot = await getDoc(reference);
+    if (snapshot.exists()) return conversationId;
+  } catch (error) {
+    if (error.code !== "permission-denied") throw error;
+  }
+  try {
+    await setDoc(reference, conversationData(teacherUid, studentUid, studentDocId));
+  } catch (createError) {
+    try {
+      const retrySnapshot = await getDoc(reference);
+      if (retrySnapshot.exists()) return conversationId;
+    } catch {}
+    throw createError;
+  }
+  return conversationId;
+}
+
 before(async () => {
   environment = await initializeTestEnvironment({
     projectId: PROJECT_ID,
@@ -107,9 +128,33 @@ test("foreign teacher, foreign student and anonymous user cannot read", async ()
 test("participants can create only the deterministic valid conversation", async () => {
   await environment.withSecurityRulesDisabled(async context => deleteDoc(doc(context.firestore(), "conversations", CONVERSATION_A)));
   const teacherDb = environment.authenticatedContext(TEACHER_A).firestore();
+  const foreignTeacherDb = environment.authenticatedContext(TEACHER_B).firestore();
+  const foreignStudentDb = environment.authenticatedContext(STUDENT_B).firestore();
   await assertSucceeds(setDoc(doc(teacherDb, "conversations", `${TEACHER_A}__${STUDENT_A}`), conversationData()));
+  await environment.withSecurityRulesDisabled(async context => deleteDoc(doc(context.firestore(), "conversations", CONVERSATION_A)));
   await assertFails(setDoc(doc(teacherDb, "conversations", "random-id"), conversationData()));
   await assertFails(setDoc(doc(teacherDb, "conversations", `${TEACHER_A}__${STUDENT_B}`), conversationData(TEACHER_A, STUDENT_B, "student-doc-b")));
+  await assertFails(setDoc(doc(teacherDb, "conversations", `${TEACHER_A}__${STUDENT_A}`), conversationData(TEACHER_A, STUDENT_A, "student-doc-b")));
+  await assertFails(setDoc(doc(foreignTeacherDb, "conversations", `${TEACHER_A}__${STUDENT_A}`), conversationData()));
+  await assertFails(setDoc(doc(foreignStudentDb, "conversations", `${TEACHER_A}__${STUDENT_A}`), conversationData()));
+});
+
+test("teacher can securely create the conversation and send the first message", async () => {
+  await environment.withSecurityRulesDisabled(async context => deleteDoc(doc(context.firestore(), "conversations", CONVERSATION_A)));
+  const db = environment.authenticatedContext(TEACHER_A).firestore();
+  const conversationId = await ensureConversationForFirstContact(db, TEACHER_A, STUDENT_A, "student-doc-a");
+  await assertSucceeds(sendMessageBatch(db, conversationId, TEACHER_A, "First teacher message", "unreadStudent"));
+  const snapshot = await assertSucceeds(getDoc(doc(db, "conversations", conversationId)));
+  assert.equal(snapshot.data().lastMessageText, "First teacher message");
+});
+
+test("student can securely create the conversation and send the first message", async () => {
+  await environment.withSecurityRulesDisabled(async context => deleteDoc(doc(context.firestore(), "conversations", CONVERSATION_A)));
+  const db = environment.authenticatedContext(STUDENT_A).firestore();
+  const conversationId = await ensureConversationForFirstContact(db, TEACHER_A, STUDENT_A, "student-doc-a");
+  await assertSucceeds(sendMessageBatch(db, conversationId, STUDENT_A, "First student message", "unreadTeacher"));
+  const snapshot = await assertSucceeds(getDoc(doc(db, "conversations", conversationId)));
+  assert.equal(snapshot.data().lastMessageText, "First student message");
 });
 
 test("student cannot choose an unrelated teacher", async () => {
