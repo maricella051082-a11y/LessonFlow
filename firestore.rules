@@ -827,8 +827,17 @@ service cloud.firestore {
           );
       }
 
-      allow read: if isConversationParticipant(resource.data)
-                  && validStudentRelationship(resource.data);
+      allow get: if isConversationParticipant(resource.data)
+                 && validStudentRelationship(resource.data);
+
+      // Collection queries must be constrained to the authenticated
+      // participant. The full student relationship remains enforced on
+      // document reads and every conversation/message write.
+      allow list: if signedIn()
+                  && (
+                    resource.data.teacherUid == request.auth.uid
+                    || resource.data.studentUid == request.auth.uid
+                  );
 
       allow create: if isConversationParticipant(request.resource.data)
                     && validStudentRelationship(request.resource.data)

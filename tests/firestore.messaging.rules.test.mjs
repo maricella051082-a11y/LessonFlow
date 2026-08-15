@@ -146,9 +146,16 @@ test("teacher and student can clear only their own unread counter", async () => 
 });
 
 test("participant conversation query is allowed", async () => {
-  const db = environment.authenticatedContext(TEACHER_A).firestore();
-  const snapshot = await assertSucceeds(getDocs(query(collection(db, "conversations"), where("teacherUid", "==", TEACHER_A))));
-  assert.equal(snapshot.size, 1);
+  const teacherDb = environment.authenticatedContext(TEACHER_A).firestore();
+  const studentDb = environment.authenticatedContext(STUDENT_A).firestore();
+  const teacherSnapshot = await assertSucceeds(getDocs(query(collection(teacherDb, "conversations"), where("teacherUid", "==", TEACHER_A))));
+  const studentSnapshot = await assertSucceeds(getDocs(query(collection(studentDb, "conversations"), where("studentUid", "==", STUDENT_A))));
+  assert.equal(teacherSnapshot.size, 1);
+  assert.equal(studentSnapshot.size, 1);
+
+  await assertFails(getDocs(query(collection(teacherDb, "conversations"), where("teacherUid", "==", TEACHER_B))));
+  await assertFails(getDocs(query(collection(studentDb, "conversations"), where("studentUid", "==", STUDENT_B))));
+  await assertFails(getDocs(query(collection(environment.unauthenticatedContext().firestore(), "conversations"), where("teacherUid", "==", TEACHER_A))));
 });
 
 test("users are readable only by self or owning teacher", async () => {
