@@ -63,6 +63,7 @@ let unsubscribeMessages = null;
 let subscribedMessagesConversationId = null;
 const programAssignmentBootstrapped = new Set();
 const recurringScheduleBootstrapped = new Set();
+const studentAuthRelationsBootstrapped = new Set();
 window.lessonFlowFirebaseReady = true;
 
 function showScreen(screen) {
@@ -96,6 +97,7 @@ function stopFirestoreListeners() {
     learningProgramWatchToken += 1;
     programAssignmentBootstrapped.clear();
     recurringScheduleBootstrapped.clear();
+    studentAuthRelationsBootstrapped.clear();
 }
 
 function messagingConversationId(teacherUid, studentUid) {
@@ -225,6 +227,19 @@ function subscribeTeacherStudents() {
             return { id: studentDoc.id, ...studentDoc.data() };
         });
         window.dispatchEvent(new CustomEvent("lessonflow:cloud-students", { detail: students }));
+        students.filter(function(student) {
+            return student.status !== "archived" && typeof student.authUid === "string" && student.authUid.trim();
+        }).forEach(function(student) {
+            if (studentAuthRelationsBootstrapped.has(student.id)) return;
+            studentAuthRelationsBootstrapped.add(student.id);
+            syncStudentAuthRelations(student.id, student.authUid).catch(function(error) {
+                console.error("Student auth relations auto-repair error:", {
+                    studentDocId: student.id,
+                    conflicts: Array.isArray(error.conflicts) ? error.conflicts : [],
+                    error: error
+                });
+            });
+        });
         students.filter(function(student) { return student.status !== "archived" && Array.isArray(student.weeklySchedule) && student.weeklySchedule.length; }).forEach(function(student) {
             if (recurringScheduleBootstrapped.has(student.id)) return;
             recurringScheduleBootstrapped.add(student.id);
