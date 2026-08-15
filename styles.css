@@ -2142,32 +2142,24 @@ html, body { max-width:100%; overflow-x:hidden; }
     min-height: 100svh;
     overflow: hidden;
     padding: 0;
-    background: linear-gradient(135deg, #f4f8ff 0%, #fffaf1 58%, #eef5ff 100%);
+    background: #071a3d;
 }
 
 #login-screen::before,
 #login-screen::after {
     content: "";
     position: absolute;
-    border-radius: 50%;
     pointer-events: none;
-    filter: blur(3px);
+    inset: 0;
 }
 
 #login-screen::before {
-    top: -18vw;
-    right: -10vw;
-    width: 42vw;
-    height: 42vw;
-    background: rgba(34, 106, 225, .08);
+    background: url("assets/student-dashboard/illustrations/next-lesson-hero.png") center / cover no-repeat;
+    opacity: .68;
 }
 
 #login-screen::after {
-    right: 25%;
-    bottom: -24vw;
-    width: 38vw;
-    height: 38vw;
-    background: rgba(239, 155, 25, .09);
+    background: rgba(7, 26, 61, .22);
 }
 
 #login-screen.active { display: block; }
@@ -2178,60 +2170,15 @@ html, body { max-width:100%; overflow-x:hidden; }
     display: grid;
     width: 100%;
     min-height: 100svh;
-    grid-template-columns: minmax(0, 78%) minmax(300px, 22%);
-}
-
-.login-london {
-    position: relative;
-    grid-column: 2;
-    grid-row: 1;
-    display: grid;
-    min-width: 0;
-    overflow: visible;
     place-items: center;
-    background: #071a3d;
-}
-
-.login-london::before,
-.login-london::after {
-    content: "";
-    position: absolute;
-    z-index: 2;
-    top: 0;
-    bottom: 0;
-    background: #071a3d;
-    pointer-events: none;
-}
-
-.login-london::before {
-    left: -5.5vw;
-    width: 5.5vw;
-    box-shadow: 18px 0 28px 6px rgba(7, 26, 61, .82);
-}
-
-.login-london::after {
-    right: 0;
-    width: 5.5vw;
-    box-shadow: -16px 0 24px 4px rgba(7, 26, 61, .88);
-}
-
-.login-london img {
-    width: 100%;
-    height: 100svh;
-    min-height: 620px;
-    object-fit: cover;
-    object-position: center 52%;
-    transform: none;
 }
 
 .login-form-zone {
-    grid-column: 1;
-    grid-row: 1;
     display: grid;
+    width: 100%;
     min-width: 0;
     padding: clamp(32px, 6vw, 96px);
     place-items: center;
-    transform: translateX(11vw);
 }
 
 #login-screen .login-card {
@@ -2328,27 +2275,13 @@ html, body { max-width:100%; overflow-x:hidden; }
 #login-screen .login-error { min-height: 20px; margin: -3px 4px 0; color: #a83b32; font-size: 14px; }
 
 @media (max-width: 980px) {
-    .login-layout { grid-template-columns: minmax(0, 72%) minmax(280px, 28%); }
-    .login-london img { min-height: 560px; }
-    .login-form-zone { padding: 34px; transform: translateX(14vw); }
+    .login-form-zone { padding: 34px; }
     #login-screen .login-card { padding: 38px; }
 }
 
 @media (max-width: 700px) {
     #login-screen { overflow: auto; }
-    .login-layout { display: block; min-height: 100svh; }
-    .login-london {
-        height: clamp(280px, 48vh, 420px);
-        grid-column: auto;
-        grid-row: auto;
-        margin-right: 0;
-        -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 84%, rgba(0, 0, 0, .8) 92%, transparent 100%);
-        mask-image: linear-gradient(to bottom, #000 0%, #000 84%, rgba(0, 0, 0, .8) 92%, transparent 100%);
-    }
-    .login-form-zone { grid-column: auto; grid-row: auto; transform: none; }
-    .login-london::before,
-    .login-london::after { display: none; }
-    .login-london img { width: 100%; height: 100%; min-height: 0; object-position: center 58%; transform: scale(1.04); }
+    .login-layout { min-height: 100svh; }
     .login-form-zone { padding: 26px 18px 42px; }
     #login-screen .login-card { width: min(100%, 500px); padding: 30px 22px; border-radius: 24px; }
     #login-screen .login-brand { margin-bottom: 28px; font-size: clamp(40px, 13vw, 54px); }
@@ -2357,7 +2290,6 @@ html, body { max-width:100%; overflow-x:hidden; }
 }
 
 @media (max-width: 380px) {
-    .login-london { height: 250px; }
     .login-form-zone { padding-inline: 12px; }
     #login-screen .login-card { padding-inline: 18px; }
 }
