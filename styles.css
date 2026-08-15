@@ -1961,7 +1961,10 @@ html, body { max-width:100%; overflow-x:hidden; }
 
 /* Shared private messaging */
 .teacher-sidebar-link { position:relative; }
-.teacher-message-nav-badge, .student-message-nav-badge { display:grid; min-width:21px; height:21px; margin-left:auto; padding:0 6px; place-items:center; border-radius:999px; background:#ff713d; color:#fff; font-size:11px; line-height:1; }
+.teacher-message-nav-badge, .student-message-nav-badge { display:grid; min-width:21px; height:21px; place-items:center; border-radius:999px; background:#ff713d; color:#fff; font-size:11px; line-height:1; }
+.teacher-message-nav-badge { margin-left:auto; padding:0 6px; }
+.student-nav-item[data-student-nav="messages"] { position:relative; padding-right:42px; }
+.student-message-nav-badge { position:absolute; top:50%; right:11px; width:22px; min-width:22px; height:22px; padding:0; transform:translateY(-50%); }
 .teacher-message-nav-badge[hidden], .student-message-nav-badge[hidden] { display:none; }
 .teacher-messaging-shell { display:grid; min-height:650px; grid-template-columns:minmax(260px,340px) minmax(0,1fr); overflow:hidden; border:1px solid var(--tf-border); border-radius:22px; background:var(--tf-card); box-shadow:var(--tf-shadow); }
 .teacher-conversation-list { overflow-y:auto; border-right:1px solid var(--tf-border); background:#fbfaf7; }
@@ -2489,6 +2492,7 @@ html, body { max-width:100%; overflow-x:hidden; }
 .worksheet-upload-page-actions button { min-width:34px; min-height:34px; padding:5px 8px; }
 .worksheet-upload-page-actions .delete-link { margin-left:auto; }
 .is-image-worksheet .worksheet-library-cover { position:relative; min-height:220px; margin:-1px -1px 14px; overflow:hidden; border-radius:18px 18px 12px 12px; background:linear-gradient(145deg,#edf4ff,#fff8e9); }
+.is-image-worksheet .worksheet-library-cover[hidden], .worksheet-lesson-block-preview[hidden], .worksheet-student-preview[hidden] { display:none; }
 .is-image-worksheet .worksheet-library-cover img { display:block; width:100%; height:220px; object-fit:contain; }
 .is-image-worksheet .worksheet-library-cover > span { display:grid; min-height:220px; place-items:center; padding:15px; color:#64748b; }
 .is-image-worksheet .worksheet-library-cover b, .worksheet-lesson-block-preview strong, .worksheet-student-preview strong { position:absolute; right:10px; bottom:10px; padding:5px 9px; border-radius:999px; background:rgba(8,43,97,.9); color:#fff; font-size:12px; }

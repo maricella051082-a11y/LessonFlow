@@ -434,9 +434,15 @@ window.addEventListener("lessonflow:firebase-profile", function(event) {
         teacherStudentRouteActive = false;
         selectedStudentRecord = null;
         demoMode = false;
-        document.getElementById("student-greeting").textContent = "Привет, " + (profile.name || "Миша") + "!";
+        document.getElementById("student-greeting").textContent = "Привет, " + (profile.name || "Ученик") + "!";
         teacherStudentPreview = false;
-        studentDashboardData = { ...studentDashboardData, vocabulary: null, vocabularyDictionary: [], vocabularyError: null, vocabularyDictionaryError: null, vocabularyLoading: true };
+        studentCalendarAnchor = new Date();
+        cloudProgress = { completedBlockIds: [], selfAssessment: "", repeatRequest: false, externalChecks: {} };
+        cloudSubmissions = [];
+        studentDashboardData = { student: null, events: [], program: null, vocabulary: null, vocabularyDictionary: [], scheduleError: null, programError: null, vocabularyError: null, vocabularyDictionaryError: null, vocabularyLoading: true };
+        Object.keys(publishedLessons).forEach(function(key) {
+            if (publishedLessons[key]?.studentUid === profile.uid || key === profile.name) delete publishedLessons[key];
+        });
         showStudentSection("home");
         showScreen(studentScreen);
     }
@@ -444,7 +450,7 @@ window.addEventListener("lessonflow:firebase-profile", function(event) {
 
 window.addEventListener("lessonflow:cloud-lesson", function(event) {
     if (event.detail) {
-        const lesson = { ...event.detail, student: event.detail.studentName || "Миша", cloudId: event.detail.cloudId };
+        const lesson = { ...event.detail, student: event.detail.studentName || firebaseProfile?.name || "Ученик", cloudId: event.detail.cloudId };
         publishedLessons[lesson.student] = lesson;
         applyCloudProgress(lesson);
         if (lesson.status === "completed") {
@@ -456,7 +462,7 @@ window.addEventListener("lessonflow:cloud-lesson", function(event) {
             }
         }
     } else {
-        delete publishedLessons[selectedStudentRecord?.name || "Миша"];
+        delete publishedLessons[firebaseProfile?.role === "student" ? firebaseProfile.name : selectedStudentRecord?.name || "Миша"];
         activePublishedLesson = null;
     }
     if (studentScreen.classList.contains("active")) {
@@ -479,7 +485,7 @@ window.addEventListener("lessonflow:student-schedule", function(event) {
 window.addEventListener("lessonflow:cloud-progress", function(event) {
     cloudProgress = event.detail || { completedBlockIds: [], selfAssessment: "", repeatRequest: false };
     if (cloudProgress.selfAssessment === "need-practice") cloudProgress.selfAssessment = "practice";
-    const lesson = publishedLessons["Миша"];
+    const lesson = studentCurrentLesson();
     if (lesson) applyCloudProgress(lesson);
     if (activePublishedLesson && studentLessonScreen.classList.contains("active")) renderStudentLesson();
     renderTeacherStudentFeedback();
@@ -2358,7 +2364,7 @@ function renderStudentVocabularyStreak() {
 }
 
 function renderStudentDashboard() {
-    const lesson = publishedLessons[firebaseProfile?.name || "Миша"] || publishedLessons["Миша"];
+    const lesson = studentCurrentLesson();
     studentPublishedSummary.replaceChildren();
     renderStudentVocabularyStreak();
     const dashboardDate = document.getElementById("student-dashboard-date"); if (dashboardDate) dashboardDate.textContent = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
@@ -2374,8 +2380,9 @@ function renderStudentDashboard() {
     const next = document.createElement("article"); next.className = "student-dashboard-card student-next-lesson"; const heroArt = document.createElement("img"); heroArt.className = "student-next-lesson-art"; heroArt.src = "assets/student-dashboard/illustrations/next-lesson-hero.png"; heroArt.alt = ""; next.appendChild(heroArt); const lessonBadge = document.createElement("span"); lessonBadge.className = "student-lesson-calendar-badge"; const lessonBadgeIcon = document.createElement("img"); lessonBadgeIcon.src = "assets/student-dashboard/icons/icon-calendar.png"; lessonBadgeIcon.alt = ""; lessonBadge.appendChild(lessonBadgeIcon); next.appendChild(lessonBadge); addTextElement(next, "p", "card-label", "СЛЕДУЮЩИЙ УРОК");
     if (nextEvent) { const date = new Date(nextEvent.date + "T00:00:00"); addTextElement(next, "h2", "", new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" }).format(date)); const end = new Date(nextEvent.date + "T" + nextEvent.startTime); end.setMinutes(end.getMinutes() + Number(nextEvent.duration || 60)); addTextElement(next, "p", "student-next-time", nextEvent.startTime + "–" + String(end.getHours()).padStart(2, "0") + ":" + String(end.getMinutes()).padStart(2, "0")); const nextTopic = nextEvent.planLessonTitle || nextEvent.topic || "Тема будет объявлена позже"; addTextElement(next, "strong", "student-next-topic", nextEvent.planLessonNumber ? "L" + nextEvent.planLessonNumber + " · " + nextTopic : nextTopic); if (program) addTextElement(next, "small", "", program.title || program.mainCourse || "Программа обучения"); const scheduledLesson = studentLessonForScheduleEvent(nextEvent); const lessonButton = addTextElement(next, "button", "student-action student-action-orange", scheduledLesson ? "Открыть урок" : "Перейти к расписанию"); lessonButton.type = "button"; lessonButton.addEventListener("click", function() { if (scheduledLesson) { studentLessonReturnSection = "home"; openPublishedLesson(scheduledLesson, false); } else showStudentSection("lessons"); }); }
     else addTextElement(next, "p", "student-empty-copy", studentDashboardData.scheduleError ? "Не удалось загрузить расписание." : "Следующее занятие пока не назначено."); top.appendChild(next);
-    const readinessPercent = taskState.length ? Math.round(doneCount / taskState.length * 100) : 100; const readiness = document.createElement("article"); readiness.id = "student-readiness-card"; readiness.className = "student-dashboard-card readiness-card " + (!remaining.length ? "is-ready" : returnedTasks.length ? "needs-fix" : doneCount ? "is-almost" : "needs-work"); addTextElement(readiness, "p", "card-label", "ГОТОВНОСТЬ К УРОКУ"); const readyBody = document.createElement("div"); readyBody.className = "student-readiness-body"; const ring = document.createElement("div"); ring.className = "student-readiness-ring"; ring.style.setProperty("--student-progress", readinessPercent + "%"); addTextElement(ring, "strong", "", readinessPercent + "%"); readyBody.appendChild(ring); const readyCopy = document.createElement("div"); readyCopy.className = "student-readiness-copy";
-    if (!remaining.length) { addTextElement(readyCopy, "h3", "", "Ты готов к следующему уроку"); addTextElement(readyCopy, "p", "", "Вся обязательная работа выполнена."); const vocabularySession = studentDashboardData.vocabulary; const vocabularySummary = getVocabularyTodaySummary(vocabularySession); if (vocabularySummary && !vocabularySummary.completed && vocabularySummary.totalCards > 0) { addTextElement(readyCopy, "p", "readiness-extra", "Если есть 5 минут — повтори " + vocabularySummary.totalCards + " карточек."); const repeat = addTextElement(readyCopy, "button", "student-action student-action-blue", "Повторить слова"); repeat.type = "button"; repeat.addEventListener("click", function() { startVocabularyTrainer(vocabularySession); }); } }
+    const hasReadinessTasks = Boolean(lesson && taskState.length); const readinessPercent = hasReadinessTasks ? Math.round(doneCount / taskState.length * 100) : null; const readiness = document.createElement("article"); readiness.id = "student-readiness-card"; readiness.className = "student-dashboard-card readiness-card " + (!hasReadinessTasks ? "is-neutral" : !remaining.length ? "is-ready" : returnedTasks.length ? "needs-fix" : doneCount ? "is-almost" : "needs-work"); addTextElement(readiness, "p", "card-label", "ГОТОВНОСТЬ К УРОКУ"); const readyBody = document.createElement("div"); readyBody.className = "student-readiness-body"; if (hasReadinessTasks) { const ring = document.createElement("div"); ring.className = "student-readiness-ring"; ring.style.setProperty("--student-progress", readinessPercent + "%"); addTextElement(ring, "strong", "", readinessPercent + "%"); readyBody.appendChild(ring); } const readyCopy = document.createElement("div"); readyCopy.className = "student-readiness-copy";
+    if (!hasReadinessTasks) { addTextElement(readyCopy, "h3", "", "Заданий пока нет"); addTextElement(readyCopy, "p", "", "Преподаватель пока не назначил обязательные задания."); }
+    else if (!remaining.length) { addTextElement(readyCopy, "h3", "", "Ты готов к следующему уроку"); addTextElement(readyCopy, "p", "", "Вся обязательная работа выполнена."); const vocabularySession = studentDashboardData.vocabulary; const vocabularySummary = getVocabularyTodaySummary(vocabularySession); if (vocabularySummary && !vocabularySummary.completed && vocabularySummary.totalCards > 0) { addTextElement(readyCopy, "p", "readiness-extra", "Если есть 5 минут — повтори " + vocabularySummary.totalCards + " карточек."); const repeat = addTextElement(readyCopy, "button", "student-action student-action-blue", "Повторить слова"); repeat.type = "button"; repeat.addEventListener("click", function() { startVocabularyTrainer(vocabularySession); }); } }
     else { addTextElement(readyCopy, "h3", "", returnedTasks.length ? "Нужно исправить " + returnedTasks.length + " " + taskWord(returnedTasks.length) : doneCount ? "Почти готов" : "Нужно подготовиться"); addTextElement(readyCopy, "p", "", "Выполнено " + doneCount + " из " + taskState.length + " обязательных заданий"); remaining.forEach(function(item) { const row = document.createElement("div"); row.className = "student-readiness-task" + (item.returned ? " is-returned" : ""); const icon = document.createElement("img"); icon.src = "assets/student-dashboard/icons/" + (item.returned ? "icon-warning.png" : "icon-notebook.png"); icon.alt = ""; row.appendChild(icon); const text = document.createElement("div"); addTextElement(text, "strong", "", item.block.title || "Задание"); addTextElement(text, "small", "", item.returned && item.submission?.teacherComment ? "Комментарий: «" + item.submission.teacherComment + "»" : item.inProgress ? "В процессе" : "Не выполнено"); row.appendChild(text); const action = addTextElement(row, "button", "student-task-action", actionLabel(item)); action.type = "button"; action.addEventListener("click", function() { openPublishedLesson(lesson, false, item.block.id); }); readyCopy.appendChild(row); }); }
     readyBody.appendChild(readyCopy); readiness.appendChild(readyBody); top.appendChild(readiness); studentPublishedSummary.appendChild(top);
     const lower = document.createElement("div"); lower.className = "student-dashboard-lower"; const vocabularySession = studentDashboardData.vocabulary; const vocabularySummary = getStudentVocabularyTodayState(vocabularySession); const vocabulary = document.createElement("article"); vocabulary.id = "student-vocabulary-card"; vocabulary.className = "student-dashboard-card student-vocabulary-card"; addTextElement(vocabulary, "p", "card-label", "СЛОВАРЬ"); addTextElement(vocabulary, "h3", "", "Повтори 5 минут"); if (studentDashboardData.vocabularyLoading) addTextElement(vocabulary, "p", "", "Загружаем сегодняшние карточки..."); else if (studentDashboardData.vocabularyError) addTextElement(vocabulary, "p", "", "Не удалось загрузить сегодняшнюю сессию"); else if (!vocabularySession) addTextElement(vocabulary, "p", "", "Скоро здесь появится ежедневное повторение слов."); else if (vocabularySession.programStatus === "not-started") addTextElement(vocabulary, "p", "", "Программа начнётся " + formatVocabularyStartDate(vocabularySession.assignment?.startDate)); else if (vocabularySummary.completed) { addTextElement(vocabulary, "strong", "", "✓ Слова на сегодня повторены"); addTextElement(vocabulary, "p", "", vocabularySummary.completedTotal + " карточки пройдено"); addTextElement(vocabulary, "p", "", "Следующая сессия — завтра"); } else if (vocabularySummary.totalCards > 0) { addTextElement(vocabulary, "strong", "", vocabularySummary.newCount && !vocabularySummary.reviewCount ? vocabularySummary.newCount + " новых слов сегодня" : vocabularySummary.totalCards + " карточек на сегодня"); addTextElement(vocabulary, "p", "", vocabularySummary.newCount + " новых · " + vocabularySummary.reviewCount + " на повторение"); const start = addTextElement(vocabulary, "button", "student-action student-action-orange", vocabularySession.status === "in-progress" ? "Продолжить" : vocabularySummary.reviewCount && !vocabularySummary.newCount ? "Повторить слова" : "Начать"); start.type = "button"; start.addEventListener("click", function() { startVocabularyTrainer(vocabularySession); }); } else addTextElement(vocabulary, "p", "", vocabularySession.missingDailyPlan ? "Для текущего дня план не найден." : "Сегодня карточек нет"); lower.appendChild(vocabulary);
@@ -2411,7 +2418,14 @@ function applyStudentDesignSystem(root) {
     root.querySelectorAll("#student-progress-fill, .student-program-progress > span").forEach(function(item) { item.classList.add("lf-progress__fill"); });
     root.querySelectorAll(".student-progress-star").forEach(function(item) { item.classList.add("lf-progress__star"); });
 }
-function studentCurrentLesson() { return publishedLessons[firebaseProfile?.name || "Миша"] || publishedLessons["Миша"]; }
+function studentCurrentLesson() {
+    if (isFirebaseMode() && firebaseProfile?.role === "student") {
+        return Object.values(publishedLessons).find(function(lesson) {
+            return lesson?.studentUid === firebaseProfile.uid;
+        }) || publishedLessons[firebaseProfile.name] || null;
+    }
+    return publishedLessons[firebaseProfile?.name || "Миша"] || publishedLessons["Миша"];
+}
 function studentLessonForScheduleEvent(event) {
     if (!event?.lessonId || event.status === "cancelled" || event.status === "completed") return null;
     const current = studentCurrentLesson();
@@ -4135,10 +4149,12 @@ function addTextElement(parent, tagName, className, content) {
 function isImageWorksheet(material) { return material?.format === "images" && Array.isArray(material.pages) && material.pages.length > 0; }
 function worksheetMaterialId(material) { return material?.materialId || material?.id || ""; }
 async function loadWorksheetThumbnail(material, image, fallback) {
+    const preview = image?.parentElement;
+    if (preview) preview.hidden = true;
     const materialId = worksheetMaterialId(material); if (!materialId || !window.lessonFlowCloud?.loadWorksheetPage) return;
     const cacheKey = String(firebaseProfile?.uid || "anonymous") + ":" + materialId;
-    try { let url = worksheetThumbnailUrls.get(cacheKey); if (!url) { const blob = await window.lessonFlowCloud.loadWorksheetPage(materialId, 0); url = URL.createObjectURL(blob); worksheetThumbnailUrls.set(cacheKey, url); } if (!image.isConnected) return; image.src = url; image.hidden = false; if (fallback) fallback.hidden = true; }
-    catch (error) { if (fallback) { fallback.hidden = false; fallback.textContent = "Не удалось загрузить обложку"; } }
+    try { let url = worksheetThumbnailUrls.get(cacheKey); if (!url) { const blob = await window.lessonFlowCloud.loadWorksheetPage(materialId, 0); url = URL.createObjectURL(blob); worksheetThumbnailUrls.set(cacheKey, url); } if (!image.isConnected) return; image.src = url; await image.decode(); if (!image.isConnected) return; image.hidden = false; if (fallback) fallback.hidden = true; if (preview) preview.hidden = false; }
+    catch (error) { console.warn("Worksheet thumbnail unavailable:", error); }
 }
 function closeWorksheetViewer() { if (worksheetViewerObjectUrl) URL.revokeObjectURL(worksheetViewerObjectUrl); worksheetViewerObjectUrl = ""; worksheetViewerMaterial = null; document.getElementById("worksheet-viewer-modal").hidden = true; document.body.classList.remove("modal-scroll-lock"); }
 async function loadWorksheetViewerPage() {

@@ -458,7 +458,18 @@ service cloud.firestore {
                     && resource.data.teacherUid == request.auth.uid
                     && request.resource.data.teacherUid == request.auth.uid
                     && request.resource.data.studentDocId == resource.data.studentDocId
-                    && request.resource.data.studentUid == resource.data.studentUid;
+                    && (
+                      request.resource.data.studentUid == resource.data.studentUid
+                      || (
+                        (!("studentUid" in resource.data) || resource.data.studentUid == "")
+                        && request.resource.data.studentUid is string
+                        && request.resource.data.studentUid != ""
+                        && studentIdentityMatches(
+                          request.resource.data.studentDocId,
+                          request.resource.data.studentUid
+                        )
+                      )
+                    );
 
       allow delete: if isTeacher()
                     && resource.data.teacherUid == request.auth.uid;

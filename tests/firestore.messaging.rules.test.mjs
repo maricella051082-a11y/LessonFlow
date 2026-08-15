@@ -254,6 +254,42 @@ test("own schedule, program, vocabulary and submission writes succeed", async ()
   await assertSucceeds(setDoc(doc(teacherDb, "submissions", "own"), { teacherUid: TEACHER_A, studentDocId: "student-doc-a", studentUid: STUDENT_A, status: "submitted" }));
 });
 
+test("teacher can bind an unlinked learning program to the canonical student auth UID", async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "learningPrograms", "legacy-program"), { teacherUid: TEACHER_A, studentDocId: "student-doc-a", studentUid: "", status: "active" });
+  });
+  const db = environment.authenticatedContext(TEACHER_A).firestore();
+  await assertSucceeds(updateDoc(doc(db, "learningPrograms", "legacy-program"), { studentUid: STUDENT_A }));
+});
+
+test("teacher cannot bind a learning program to a foreign student UID", async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "learningPrograms", "legacy-program"), { teacherUid: TEACHER_A, studentDocId: "student-doc-a", studentUid: "", status: "active" });
+  });
+  await assertFails(updateDoc(doc(environment.authenticatedContext(TEACHER_A).firestore(), "learningPrograms", "legacy-program"), { studentUid: STUDENT_B }));
+});
+
+test("Teacher A cannot bind Teacher B learning program", async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "learningPrograms", "teacher-b-program"), { teacherUid: TEACHER_B, studentDocId: "student-doc-b", studentUid: "", status: "active" });
+  });
+  await assertFails(updateDoc(doc(environment.authenticatedContext(TEACHER_A).firestore(), "learningPrograms", "teacher-b-program"), { studentUid: STUDENT_B }));
+});
+
+test("an already linked learning program cannot be rebound", async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "learningPrograms", "linked-program"), { teacherUid: TEACHER_A, studentDocId: "student-doc-a", studentUid: STUDENT_A, status: "active" });
+  });
+  await assertFails(updateDoc(doc(environment.authenticatedContext(TEACHER_A).firestore(), "learningPrograms", "linked-program"), { studentUid: STUDENT_B }));
+});
+
+test("studentDocId cannot change during initial learning program binding", async () => {
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "learningPrograms", "legacy-program"), { teacherUid: TEACHER_A, studentDocId: "student-doc-a", studentUid: "", status: "active" });
+  });
+  await assertFails(updateDoc(doc(environment.authenticatedContext(TEACHER_A).firestore(), "learningPrograms", "legacy-program"), { studentDocId: "student-doc-b", studentUid: STUDENT_B }));
+});
+
 test("legacy Misha keeps own profile and teacher-owned lesson access without migration", async () => {
   await assertSucceeds(getDoc(doc(environment.authenticatedContext(LEGACY_STUDENT).firestore(), "users", LEGACY_STUDENT)));
   await assertSucceeds(getDoc(doc(environment.authenticatedContext(TEACHER_A).firestore(), "currentLessons", LEGACY_STUDENT)));

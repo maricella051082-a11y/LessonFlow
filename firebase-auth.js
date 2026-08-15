@@ -332,6 +332,32 @@ async function findMishaUid() {
     return legacyStudent?.authUid || null;
 }
 
+async function syncStudentAuthRelations(studentDocId, authUid) {
+    if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) throw new Error("not-authenticated-teacher");
+    const teacherUid = auth.currentUser.uid;
+    const studentSnapshot = await getDoc(doc(db, "students", studentDocId));
+    if (!studentSnapshot.exists() || studentSnapshot.data().teacherUid !== teacherUid) throw new Error("student-owner-mismatch");
+    if (studentSnapshot.data().authUid !== authUid) throw new Error("student-auth-integrity-mismatch");
+    const [eventsSnapshot, programsSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "scheduleEvents"), where("teacherUid", "==", teacherUid))),
+        getDocs(query(collection(db, "learningPrograms"), where("teacherUid", "==", teacherUid)))
+    ]);
+    const events = eventsSnapshot.docs.filter(function(item) { return item.data().studentDocId === studentDocId; });
+    const programs = programsSnapshot.docs.filter(function(item) { return item.data().studentDocId === studentDocId; });
+    const conflicts = events.filter(function(item) { return item.data().studentAuthUid && item.data().studentAuthUid !== authUid; }).map(function(item) { return "scheduleEvents/" + item.id; })
+        .concat(programs.filter(function(item) { return item.data().studentUid && item.data().studentUid !== authUid; }).map(function(item) { return "learningPrograms/" + item.id; }));
+    if (conflicts.length) throw Object.assign(new Error("student-auth-relations-integrity-error"), { code: "failed-precondition", conflicts });
+    const emptyEvents = events.filter(function(item) { return !item.data().studentAuthUid; });
+    const emptyPrograms = programs.filter(function(item) { return !item.data().studentUid; });
+    if (emptyEvents.length || emptyPrograms.length) {
+        const batch = writeBatch(db);
+        emptyEvents.forEach(function(item) { batch.update(item.ref, { studentAuthUid: authUid, updatedAt: serverTimestamp() }); });
+        emptyPrograms.forEach(function(item) { batch.update(item.ref, { studentUid: authUid, updatedAt: serverTimestamp() }); });
+        await batch.commit();
+    }
+    return { scheduleEventsLinked: emptyEvents.length, learningProgramsLinked: emptyPrograms.length };
+}
+
 async function subscribeTeacherFeedback() {
     stopFirestoreListeners();
     try {
@@ -1191,6 +1217,7 @@ window.lessonFlowCloud = {
         const secondaryApp = initializeApp(firebaseConfig, "student-provision-" + Date.now() + "-" + Math.random().toString(36).slice(2));
         const secondaryAuth = getAuth(secondaryApp);
         let createdUser = null;
+        let accountLinked = false;
         try {
             const credential = await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, password);
             createdUser = credential.user;
@@ -1209,9 +1236,11 @@ window.lessonFlowCloud = {
                 });
                 transaction.update(studentRef, { authUid: createdUser.uid, updatedAt: serverTimestamp() });
             });
-            return { authUid: createdUser.uid, email: normalizedEmail };
+            accountLinked = true;
+            const syncResult = await syncStudentAuthRelations(studentId, createdUser.uid);
+            return { authUid: createdUser.uid, email: normalizedEmail, ...syncResult };
         } catch (error) {
-            if (createdUser) {
+            if (createdUser && !accountLinked) {
                 try { await deleteUser(createdUser); }
                 catch (rollbackError) { console.error("Student account rollback failed:", rollbackError.code || rollbackError.message); error.rollbackFailed = true; }
             }
@@ -1221,6 +1250,7 @@ window.lessonFlowCloud = {
             await deleteApp(secondaryApp);
         }
     },
+    syncStudentAuthRelations,
     async archiveStudent(studentId) {
         if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) throw new Error("not-authenticated-teacher");
         const teacherUid = auth.currentUser.uid;
