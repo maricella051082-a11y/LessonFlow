@@ -1,0 +1,23 @@
+node_modules/
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+*serviceAccount*.json
+*firebase-admin*.json
+*firebase-credentials*.json
+youtube-config.js
+
+# Firebase emulator and CLI diagnostics
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+.firebase/
+.firebase-*.json
+firebase-export-*/
+emulator-data/

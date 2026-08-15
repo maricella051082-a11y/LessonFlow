@@ -1,0 +1,33 @@
+// Merge only these additive read rules into the existing matching collection
+// blocks. Firestore ORs multiple matching `allow` expressions, so the existing
+// teacher read/write rules remain unchanged. Do not deploy this fragment alone.
+
+// Inside match /scheduleEvents/{eventId}:
+allow read: if request.auth != null
+            && resource.data.studentAuthUid == request.auth.uid;
+
+// Effective read after merging:
+// request.auth != null && (
+//   resource.data.teacherUid == request.auth.uid ||
+//   resource.data.studentAuthUid == request.auth.uid
+// )
+// Do not add student create/update/delete permissions.
+
+// Inside match /learningPrograms/{programId}:
+allow read: if request.auth != null
+            && resource.data.studentUid == request.auth.uid;
+
+// Effective read after merging:
+// request.auth != null && (
+//   resource.data.teacherUid == request.auth.uid ||
+//   resource.data.studentUid == request.auth.uid
+// )
+// Keep the existing teacher-only create/update/delete rules.
+
+// Inside match /learningPrograms/{programId}/lessons/{planLessonId}:
+allow read: if request.auth != null
+            && get(
+              /databases/$(database)/documents/learningPrograms/$(programId)
+            ).data.studentUid == request.auth.uid;
+
+// Keep the existing teacher-only create/update/delete permissions for lessons.

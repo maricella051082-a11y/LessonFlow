@@ -1,0 +1,158 @@
+// Vocabulary fragment only.
+// Source of truth: firestore.rules
+// Do not deploy this file directly.
+
+match /vocabularyPrograms/{vocabProgramId} {
+  allow read: if request.auth != null
+              && (
+                resource.data.teacherUid == request.auth.uid ||
+                get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.studentUid == request.auth.uid
+                && (
+                  get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabularyProgramId == vocabProgramId ||
+                  get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabProgramId == vocabProgramId
+                )
+              );
+
+  allow create: if request.auth != null
+                && request.resource.data.teacherUid == request.auth.uid;
+
+  allow update: if request.auth != null
+                && resource.data.teacherUid == request.auth.uid
+                && request.resource.data.teacherUid == request.auth.uid;
+
+  allow delete: if request.auth != null
+                && resource.data.teacherUid == request.auth.uid;
+
+  match /{subcollection}/{documentId} {
+    allow read: if request.auth != null
+      && subcollection in ["cards", "optionalCards", "weeks", "dailyPlan"]
+      && (
+        get(/databases/$(database)/documents/vocabularyPrograms/$(vocabProgramId)).data.teacherUid == request.auth.uid ||
+        get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.studentUid == request.auth.uid
+        && (
+          get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabularyProgramId == vocabProgramId ||
+          get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabProgramId == vocabProgramId
+        )
+      );
+
+    allow create, update, delete: if request.auth != null
+      && subcollection in ["cards", "optionalCards", "weeks", "dailyPlan"]
+      && get(
+        /databases/$(database)/documents/vocabularyPrograms/$(vocabProgramId)
+      ).data.teacherUid == request.auth.uid;
+  }
+}
+
+match /studentVocabulary/{studentUid} {
+  allow read: if request.auth != null && (
+                resource.data.teacherUid == request.auth.uid ||
+                request.auth.uid == studentUid && resource.data.studentUid == request.auth.uid
+              );
+
+  allow delete: if request.auth != null
+                && resource.data.teacherUid == request.auth.uid;
+
+  allow create: if request.auth != null
+                && request.resource.data.teacherUid == request.auth.uid
+                && request.resource.data.studentUid == studentUid;
+
+  allow update: if request.auth != null
+                && (
+                  resource.data.teacherUid == request.auth.uid
+                  && request.resource.data.teacherUid == request.auth.uid
+                  && request.resource.data.studentUid == resource.data.studentUid
+                  && request.resource.data.studentUid == studentUid ||
+                  request.auth.uid == studentUid
+                  && resource.data.studentUid == request.auth.uid
+                  && request.resource.data.studentUid == request.auth.uid
+                  && request.resource.data.teacherUid == resource.data.teacherUid
+                  && request.resource.data.vocabularyProgramId == resource.data.vocabularyProgramId
+                  && request.resource.data.vocabProgramId == resource.data.vocabProgramId
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    "currentDayIndex", "currentWeekNumber", "lastSessionDate",
+                    "lastSessionAt", "lastCompletedDayIndex",
+                    "lastCompletedStudyDayIndex", "lastCompletedAt",
+                    "lastSessionSummary", "newCount", "learningCount",
+                    "reviewCount", "masteredCount", "updatedAt"
+                  ])
+                );
+
+  match /cards/{cardId} {
+    allow read: if request.auth != null && (
+      request.auth.uid == studentUid ||
+      get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid
+    );
+
+    allow delete: if request.auth != null
+                  && get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid;
+
+    allow create: if request.auth != null && (
+      get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid ||
+      request.auth.uid == studentUid
+      && request.resource.data.cardId == cardId
+      && (
+        request.resource.data.vocabularyProgramId == get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabularyProgramId ||
+        request.resource.data.vocabularyProgramId == get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabProgramId
+      )
+    );
+
+    allow update: if request.auth != null && (
+      get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid ||
+      request.auth.uid == studentUid
+      && resource.data.cardId == cardId
+      && request.resource.data.cardId == cardId
+      && (
+        "vocabularyProgramId" in resource.data
+        && request.resource.data.vocabularyProgramId == resource.data.vocabularyProgramId
+        && request.resource.data.vocabularyProgramId in [
+          get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabularyProgramId,
+          get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabProgramId
+        ] ||
+        !("vocabularyProgramId" in resource.data)
+        && !("vocabularyProgramId" in request.resource.data)
+      )
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        "state", "introducedAt", "introducedDayIndex",
+        "lastReviewedAt", "lastReviewDate", "nextReviewAt",
+        "nextReviewDate", "intervalStep", "intervalDays",
+        "reviewCount", "correctCount", "incorrectCount",
+        "consecutiveCorrect", "consecutiveIncorrect", "masteryPasses",
+        "lastAnswer", "lastDirection", "updatedAt"
+      ])
+    );
+  }
+
+  match /sessions/{sessionId} {
+    allow read: if request.auth != null && (
+      request.auth.uid == studentUid ||
+      get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid
+    );
+
+    allow delete: if request.auth != null
+                  && get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.teacherUid == request.auth.uid;
+
+    allow create: if request.auth != null
+                  && request.auth.uid == studentUid
+                  && request.resource.data.studentUid == studentUid
+                  && request.resource.data.programId in [
+                    get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabularyProgramId,
+                    get(/databases/$(database)/documents/studentVocabulary/$(studentUid)).data.vocabProgramId
+                  ];
+
+    allow update: if request.auth != null
+                  && request.auth.uid == studentUid
+                  && resource.data.studentUid == studentUid
+                  && request.resource.data.studentUid == studentUid
+                  && request.resource.data.programId == resource.data.programId
+                  && request.resource.data.date == resource.data.date
+                  && request.resource.data.dayIndex == resource.data.dayIndex
+                  && request.resource.data.weekNumber == resource.data.weekNumber
+                  && request.resource.data.sessionType == resource.data.sessionType
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    "status", "startedAt", "completedAt", "answeredCards",
+                    "againCount", "hardCount", "knowCount", "answers",
+                    "cardOrder", "newCardIds", "reviewCardIds", "totalCards",
+                    "summary", "updatedAt"
+                  ]);
+  }
+}

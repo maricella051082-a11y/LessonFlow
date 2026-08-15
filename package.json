@@ -1,0 +1,18 @@
+{
+  "name": "lessonflow-firestore-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:rules": "firebase emulators:exec --only firestore --project lessonflow-ae46d \"node --test tests/firestore.messaging.rules.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase": "^12.16.0",
+    "firebase-tools": "^14.22.0"
+  },
+  "allowScripts": {
+    "@firebase/util@1.15.2": true,
+    "protobufjs@7.6.5": true,
+    "re2@1.26.1": true
+  }
+}

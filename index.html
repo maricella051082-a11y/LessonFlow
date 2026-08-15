@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>LessonFlow</title>
+
+    <link rel="stylesheet" href="styles.css?v=20260815-student-account">
+</head>
+
+<body>
+
+    <!-- ЭКРАН ВХОДА -->
+    <section id="login-screen" class="screen active">
+
+        <div class="login-card">
+
+            <p class="small-title">PERSONAL LEARNING SPACE</p>
+
+            <h1>LessonFlow</h1>
+
+            <p class="subtitle">
+                Персональное пространство преподавателя и ученика
+            </p>
+
+            <form id="firebase-login-form" class="firebase-login-form" novalidate>
+                <label>Email<input id="login-email" name="email" type="email" autocomplete="email" required></label>
+                <label>Пароль<input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
+                <button id="firebase-login-button" class="main-button" type="submit">Войти</button>
+                <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+            </form>
+
+            <div class="demo-login">
+                <p>Демо-режим</p>
+                <div class="login-buttons">
+                    <button id="teacher-login" class="secondary-button" type="button">Демо: преподаватель</button>
+                    <button id="student-login" class="secondary-button" type="button">Демо: Миша</button>
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- КАБИНЕТ ПРЕПОДАВАТЕЛЯ -->
+    <section id="teacher-screen" class="screen teacher-app teacher-home-screen">
+
+        <header class="topbar">
+
+            <div>
+                <p class="logo">LessonFlow</p>
+                <p class="role">Кабинет преподавателя</p>
+            </div>
+
+            <div class="teacher-topbar-profile"><img src="assets/teacher/avatars/avatar-teacher-female.png" alt="Аватар преподавателя"><button class="logout-button">Выйти</button></div>
+
+        </header>
+
+
+        <div class="app-layout">
+
+            <aside class="sidebar">
+
+                <button id="today-nav" class="nav-button active-nav">
+                    Сегодня
+                </button>
+
+                <button id="calendar-nav" class="nav-button">Календарь</button>
+
+               <button id="students-nav" class="nav-button">
+    Ученики
+</button>
+
+                <button id="library-nav" class="nav-button">
+                    Библиотека
+                </button>
+
+                <button id="lesson-prep-nav" class="nav-button">
+                    Подготовка уроков
+                </button>
+
+            </aside>
+
+
+            <main class="content">
+
+                <div class="page-header">
+
+                    <div>
+                        <p id="today-date" class="small-title">Сегодня</p>
+                        <h2>Сегодня</h2>
+                        <p id="today-clock" class="today-clock" aria-live="off"></p>
+                    </div>
+
+                    <div id="today-lesson-count" class="lesson-count">
+                        3 урока
+                    </div>
+
+                </div>
+
+
+                <section class="legacy-today-schedule" aria-hidden="true">
+                <div id="today-summary" class="today-summary"></div>
+                <h3>Расписание на сегодня</h3>
+                <div id="firebase-today-list"></div>
+                <div id="demo-today-list">
+
+
+                <!-- УЧЕНИК 1 -->
+                <article class="student-card">
+
+                    <div class="time">
+                        15:00
+                    </div>
+
+                    <div class="student-info">
+
+                        <h3>Миша</h3>
+
+                        <p>
+                            9 класс · Английский
+                        </p>
+
+                        <div class="student-details">
+
+                            <span>
+                                Тема:
+                                <strong>Present Perfect</strong>
+                            </span>
+
+                            <span class="attention">
+                                Повторить: irregular verbs
+                            </span>
+
+                        </div>
+
+                        <div id="today-misha-result" class="today-result"></div>
+
+                    </div>
+
+                    <button
+                        class="prepare-button"
+                        data-student="Миша"
+                    >
+                        Подготовить урок
+                    </button>
+
+                </article>
+
+
+                <!-- УЧЕНИК 2 -->
+                <article class="student-card">
+
+                    <div class="time">
+                        17:00
+                    </div>
+
+                    <div class="student-info">
+
+                        <h3>Аня</h3>
+
+                        <p>
+                            HSK 2 · Китайский
+                        </p>
+
+                        <div class="student-details">
+
+                            <span>
+                                Тема:
+                                <strong>正在 / 在</strong>
+                            </span>
+
+                            <span class="attention">
+                                Повторить: порядок слов
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="prepare-button"
+                        data-student="Аня"
+                    >
+                        Подготовить урок
+                    </button>
+
+                </article>
+
+
+                <!-- УЧЕНИК 3 -->
+                <article class="student-card">
+
+                    <div class="time">
+                        19:00
+                    </div>
+
+                    <div class="student-info">
+
+                        <h3>Лена</h3>
+
+                        <p>
+                            B1 · Английский
+                        </p>
+
+                        <div class="student-details">
+
+                            <span>
+                                Тема:
+                                <strong>Travel</strong>
+                            </span>
+
+                            <span class="good">
+                                ДЗ выполнено
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="prepare-button"
+                        data-student="Лена"
+                    >
+                        Подготовить урок
+                    </button>
+
+                </article>
+                </div>
+                </section>
+
+                <section class="today-tasks-section">
+                    <h3>Задачи на сегодня</h3>
+                    <div id="today-tasks-list"></div>
+                </section>
+
+            </main>
+
+        </div>
+
+    </section>
+
+    <section id="calendar-screen" class="screen teacher-app teacher-internal-screen">
+        <header class="topbar"><div><p class="logo">LessonFlow</p><p class="role">Календарь</p></div><button id="back-from-calendar" class="logout-button teacher-back-button">← Назад</button></header>
+        <div class="app-layout">
+            <aside class="sidebar">
+                <button id="calendar-today-nav" class="nav-button">Сегодня</button>
+                <button class="nav-button active-nav">Календарь</button>
+                <button id="calendar-students-nav" class="nav-button">Ученики</button>
+                <button id="calendar-library-nav" class="nav-button">Библиотека</button>
+                <button id="calendar-prep-nav" class="nav-button">Подготовка уроков</button>
+            </aside>
+            <main class="content">
+                <div class="calendar-heading"><div><p class="small-title">РАСПИСАНИЕ</p><h2>Календарь</h2></div><button id="add-schedule-event" class="main-button" type="button">+ Добавить занятие</button></div>
+                <div class="calendar-controls"><button id="previous-week" class="secondary-button" type="button">← Предыдущая</button><button id="current-week" class="secondary-button" type="button">Сегодня</button><button id="next-week" class="secondary-button" type="button">Следующая →</button><strong id="calendar-week-label"></strong></div>
+                <div id="calendar-week" class="calendar-week"></div>
+            </main>
+        </div>
+    </section>
+
+    <div id="schedule-event-modal" class="modal-backdrop" hidden>
+        <section class="material-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-event-title">
+            <h2 id="schedule-event-title">Добавить занятие</h2>
+            <form id="schedule-event-form">
+                <label>Ученик<select name="studentDocId" required></select></label>
+                <label>Дата<input name="date" type="date" required></label>
+                <label>Время<input name="startTime" type="time" required></label>
+                <label>Продолжительность<input name="duration" type="number" min="5" step="5" value="60" required></label>
+                <label>Тема<input name="topic" required></label>
+                <label id="schedule-plan-lesson-field" hidden>Урок программы<select name="planLessonId"><option value="">Не назначен</option></select><small id="schedule-plan-lesson-note"></small></label>
+                <div class="modal-actions"><button class="main-button" type="submit">Сохранить</button><button id="cancel-schedule-event" class="secondary-button" type="button">Отмена</button></div>
+            </form>
+        </section>
+    </div>
+
+    <div id="schedule-details-modal" class="modal-backdrop" hidden>
+        <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-details-title">
+            <h2 id="schedule-details-title">Занятие</h2><div id="schedule-details-content"></div>
+            <div class="schedule-detail-actions"><button id="schedule-open-student" class="secondary-button" type="button">Открыть ученика</button><button id="schedule-prepare" class="main-button" type="button">Подготовить урок</button><button id="schedule-edit" class="secondary-button" type="button">Редактировать</button><button id="schedule-cancel" class="delete-link" type="button">Отменить занятие</button><button id="schedule-close" class="secondary-button" type="button">Закрыть</button></div>
+        </section>
+    </div>
+
+    <section id="firebase-account-screen" class="screen">
+        <header class="topbar"><div><p class="logo">LessonFlow</p><p class="role">Firebase</p></div></header>
+        <main class="firebase-account-content">
+            <div class="firebase-account-card">
+                <p class="small-title">АВТОРИЗАЦИЯ</p>
+                <h2 id="firebase-account-title">Проверяем профиль…</h2>
+                <p id="firebase-account-message"><strong id="firebase-user-email"></strong></p>
+                <button id="firebase-logout" class="main-button">Выйти</button>
+            </div>
+        </main>
+    </section>
+
+
+    <!-- БИБЛИОТЕКА МАТЕРИАЛОВ -->
+    <section id="library-screen" class="screen teacher-app teacher-internal-screen">
+        <header class="topbar">
+            <div>
+                <p class="logo">LessonFlow</p>
+                <p class="role">Библиотека</p>
+            </div>
+                <button id="back-from-library" class="library-back-button teacher-back-button">← Назад</button>
+        </header>
+
+        <main class="library-content">
+            <div class="library-heading">
+                <div>
+                    <p class="small-title">УЧЕБНЫЕ МАТЕРИАЛЫ</p>
+                    <h2>Библиотека материалов</h2>
+                    <p class="subtitle-left">Все учебные материалы в одном месте</p>
+                </div>
+                <div class="library-heading-actions"><button id="upload-worksheet-button" class="secondary-button" type="button">+ Загрузить рабочий лист</button><button id="add-material-button" class="main-button">+ Добавить материал</button></div>
+            </div>
+
+            <div class="library-toolbar">
+                <label class="search-field">
+                    <span class="visually-hidden">Поиск материалов</span>
+                    <input id="material-search" type="search" placeholder="Поиск по названию или теме">
+                </label>
+
+                <div id="type-filters" class="filter-group" aria-label="Тип материала">
+                    <button class="filter-button active-filter" data-type="all">Все</button>
+                    <button class="filter-button" data-type="Учебник">Учебники</button>
+                    <button class="filter-button" data-type="Рабочий лист">Рабочие листы</button>
+                    <button class="filter-button" data-type="Онлайн-игра">Онлайн-игры</button>
+                    <button class="filter-button" data-type="Видео">Видео</button>
+                    <button class="filter-button" data-type="Мой сайт">Мои сайты</button>
+                    <button class="filter-button" data-type="Ссылка">Ссылки</button><button class="filter-button" data-type="Другое">Другое</button>
+                </div>
+
+                <label class="level-filter-label">
+                    <span>Уровень</span>
+                    <select id="level-filter">
+                        <option value="all">Все уровни</option>
+                        <option value="9 класс">9 класс</option>
+                        <option value="B1">B1</option>
+                        <option value="HSK 2">HSK 2</option>
+                    </select>
+                </label>
+                <label class="level-filter-label"><span>Предмет</span><select id="subject-filter"><option value="all">Все</option><option value="Английский">Английский</option><option value="Китайский">Китайский</option></select></label>
+            </div>
+
+            <p id="library-result-count" class="library-result-count" aria-live="polite"></p>
+            <div id="materials-grid" class="materials-grid"></div>
+            <p id="library-empty" class="library-empty" hidden>По вашему запросу материалы не найдены.</p>
+        </main>
+
+        <div id="material-modal" class="modal-backdrop" hidden>
+            <section class="material-modal" role="dialog" aria-modal="true" aria-labelledby="material-modal-title">
+                <h2 id="material-modal-title">Добавить материал</h2>
+                <form id="material-form">
+                    <label>Название<input id="new-material-title" name="title" required></label>
+                    <label>Предмет<select name="subject" required><option value="Английский">Английский</option><option value="Китайский">Китайский</option><option value="Другое">Другое</option></select></label>
+                    <label>Тип
+                        <select id="new-material-type" name="type" required>
+                            <option value="Учебник">Учебник</option>
+                            <option value="Рабочий лист">Рабочий лист</option>
+                            <option value="online-game">Онлайн-игра</option>
+                            <option value="Видео">Видео</option>
+                            <option value="Мой сайт">Мой сайт</option>
+                            <option value="Ссылка">Ссылка</option><option value="Другое">Другое</option>
+                        </select>
+                    </label>
+                    <label>Уровень<input id="new-material-level" name="level" required></label>
+                    <label>Тема<input id="new-material-topic" name="topic" required></label>
+                    <label>Теги<input name="tags" placeholder="grammar, irregular verbs"></label>
+                    <label id="material-link-label">Ссылка<input id="new-material-link" name="link" type="url" placeholder="https://"></label>
+                    <label>Сервис<select name="service"><option value="">Не указан</option><option>Wordwall</option><option>YouTube</option><option>ProgressMe</option><option>YouGlish</option><option>Другое</option></select></label>
+                    <div class="wordwall-embed-field wordwall-assignment-help" hidden><strong>Wordwall используется как проверяемое задание</strong><ol><li>Выберите Set Assignment</li><li>Оставьте Enter name</li><li>Создайте задание</li><li>Вставьте ссылку Assignment</li><li>Вставьте код для встраивания Assignment</li></ol></div>
+                    <label id="wordwall-results-title-label" class="wordwall-embed-field" hidden>Название задания для результатов<input name="resultsTitle" placeholder="Irregular verbs 3 forms"></label>
+                    <label id="wordwall-embed-label" class="wordwall-embed-field" hidden>Код для встраивания задания<textarea id="wordwall-embed-input" name="embedCode" rows="3" placeholder="Вставьте iframe-код Assignment или https://wordwall.net/embed/..."></textarea></label>
+                    <p id="wordwall-embed-error" class="login-error wordwall-embed-field" hidden aria-live="polite"></p>
+                    <label>Описание<textarea id="new-material-description" name="description" rows="3" required></textarea></label>
+                    <button id="check-material-preview" type="button" class="secondary-button preview-check-button">Проверить предпросмотр</button>
+                    <div class="modal-actions">
+                        <button type="submit" class="main-button">Сохранить</button>
+                        <button id="cancel-material" type="button" class="secondary-button">Отмена</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </section>
+    <div id="worksheet-upload-modal" class="modal-backdrop" hidden>
+        <section class="material-modal worksheet-upload-modal" role="dialog" aria-modal="true" aria-labelledby="worksheet-upload-title">
+            <h2 id="worksheet-upload-title">Загрузить рабочий лист</h2>
+            <form id="worksheet-upload-form">
+                <label>Название *<input name="title" required maxlength="160"></label>
+                <div class="worksheet-form-grid"><label>Тема<input name="topic" maxlength="120"></label><label>Tags<input name="tags" placeholder="grammar, speaking"></label></div>
+                <label>Комментарий / заметка<textarea name="notes" rows="3"></textarea></label>
+                <div class="worksheet-file-field"><strong>Изображения *</strong><input id="worksheet-files" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple><button id="choose-worksheet-files" class="secondary-button" type="button">Выбрать изображения</button><small>JPG, PNG или WEBP · до 10 страниц · максимум 10 МБ каждая</small></div>
+                <div id="worksheet-page-previews" class="worksheet-page-previews"></div>
+                <p id="worksheet-upload-status" class="login-error" aria-live="polite"></p>
+                <div class="modal-actions"><button id="save-worksheet" type="submit" class="main-button">Сохранить</button><button id="cancel-worksheet-upload" type="button" class="secondary-button">Отмена</button></div>
+            </form>
+        </section>
+    </div>
+    <div id="worksheet-viewer-modal" class="modal-backdrop worksheet-viewer-backdrop" hidden>
+        <section class="worksheet-viewer" role="dialog" aria-modal="true" aria-labelledby="worksheet-viewer-title">
+            <header class="worksheet-viewer-header"><div><h2 id="worksheet-viewer-title">Рабочий лист</h2><p id="worksheet-viewer-meta"></p></div><button id="close-worksheet-viewer" type="button" class="preview-close-icon" aria-label="Закрыть">×</button></header>
+            <div id="worksheet-viewer-canvas" class="worksheet-viewer-canvas"><div id="worksheet-viewer-loading">Загружаем страницу…</div><img id="worksheet-viewer-image" alt="Страница рабочего листа" hidden><div id="worksheet-viewer-error" hidden><p>Не удалось загрузить страницу.</p><button id="retry-worksheet-page" type="button" class="secondary-button">Повторить</button></div></div>
+            <footer class="worksheet-viewer-controls"><button id="worksheet-page-previous" type="button" class="secondary-button">←</button><strong id="worksheet-page-counter">1 / 1</strong><button id="worksheet-page-next" type="button" class="secondary-button">→</button><span class="worksheet-control-divider"></span><button id="worksheet-zoom-out" type="button" class="secondary-button">−</button><button id="worksheet-fit" type="button" class="secondary-button">По размеру</button><button id="worksheet-zoom-in" type="button" class="secondary-button">+</button></footer>
+        </section>
+    </div>
+    <div id="delete-material-modal" class="modal-backdrop" hidden><section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="delete-material-title"><h2 id="delete-material-title">Удалить материал?</h2><p>Удалить этот материал из библиотеки?</p><div class="modal-actions"><button id="confirm-delete-material" type="button" class="danger-button">Удалить</button><button id="cancel-delete-material" type="button" class="secondary-button">Отмена</button></div></section></div>
+
+    <div id="preview-modal" class="modal-backdrop" hidden>
+        <section class="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+            <header class="preview-header">
+                <div>
+                    <h2 id="preview-title">Предпросмотр материала</h2>
+                    <p id="preview-meta"></p>
+                </div>
+                <button id="close-preview-icon" class="preview-close-icon" type="button" aria-label="Закрыть">×</button>
+            </header>
+            <div class="preview-frame-wrap">
+                <iframe id="preview-frame" title="Предпросмотр онлайн-ресурса" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <div id="preview-placeholder" class="preview-placeholder" hidden></div>
+            </div>
+            <p id="preview-warning" class="preview-warning">Этот ресурс может запрещать встроенный просмотр.</p>
+            <footer class="preview-footer">
+                <a id="preview-new-tab" class="main-button link-button" target="_blank" rel="noopener noreferrer">Открыть в новой вкладке</a>
+                <button id="preview-save-youtube" type="button" class="small-button" hidden>+ В библиотеку</button>
+                <button id="close-preview" type="button" class="secondary-button">Закрыть</button>
+            </footer>
+        </section>
+    </div>
+
+
+    <!-- КОНСТРУКТОР УРОКА -->
+    <section id="lesson-screen" class="screen teacher-app teacher-internal-screen">
+
+        <header class="topbar">
+
+            <div>
+                <p class="logo">LessonFlow</p>
+                <p class="role">Подготовка урока</p>
+            </div>
+
+            <button id="back-to-teacher" class="logout-button teacher-back-button">
+                ← Назад
+            </button>
+
+        </header>
+
+
+        <main class="lesson-builder">
+            <p class="small-title">КОНСТРУКТОР УРОКА</p>
+            <h2 id="lesson-student-name">Урок для ученика</h2>
+            <div id="lesson-student-meta" class="lesson-student-meta"></div>
+
+            <section id="preparation-program-plan" class="preparation-program-plan" hidden>
+                <p class="small-title">ПЛАН ПО ПРОГРАММЕ</p>
+                <div id="preparation-program-plan-content"></div>
+            </section>
+
+            <div class="lesson-context-layout">
+                <aside class="context-card">
+                    <h3 id="lesson-context-title">Что учесть</h3>
+                    <ul id="lesson-context-list"></ul>
+                </aside>
+
+                <section id="recommended-materials-section" class="recommended-card">
+                    <div class="section-heading">
+                        <div>
+                            <h3>Подходящие материалы</h3>
+                            <p>По текущей теме и темам для повторения</p>
+                        </div>
+                    </div>
+                    <div id="recommended-materials" class="recommended-materials"></div>
+                </section>
+            </div>
+
+            <section class="youglish-tool-card">
+                <div>
+                    <p class="small-title">ЖИВАЯ РЕЧЬ</p>
+                    <h3>Видео-примеры из живой речи</h3>
+                    <p>Найдите слово или выражение в реальных видео</p>
+                </div>
+                <button id="open-youglish" class="main-button">Найти пример</button>
+            </section>
+
+            <section class="builder-card lesson-plan-card">
+                <div class="section-heading">
+                    <div>
+                        <h3>План урока</h3>
+                        <p>Соберите материалы и этапы занятия</p>
+                    </div>
+                    <div class="builder-heading-actions">
+                        <div class="lesson-control-legend" aria-label="Обозначения кнопок плана урока">
+                            <span><b>◉</b> просмотр</span><span><b>✎</b> изменить</span><span><b>У/П</b> аудитория</span><span><b>◷</b> минуты</span><span><b>↑↓</b> порядок</span><span><b>×</b> удалить</span>
+                        </div>
+                        <button id="builder-add-library" class="main-button" type="button">+ Добавить из библиотеки</button><button id="add-block-button" class="secondary-button">+ Свой блок</button>
+                    </div>
+                </div>
+
+                <div id="lesson-plan" class="lesson-plan"></div>
+                <div id="empty-lesson" class="empty-lesson">Пока урок пуст. Добавьте подходящий материал или свой блок.</div>
+
+                <footer class="lesson-plan-footer">
+                    <strong>Общее время урока: <span id="lesson-total-time">0</span> минут</strong>
+                    <div class="lesson-save-actions">
+                        <button id="save-draft" class="secondary-button">Сохранить</button>
+                        <button id="publish-lesson" class="main-button">Опубликовать</button>
+                    </div>
+                    <div class="lesson-publish-feedback">
+                        <p id="lesson-save-status" class="lesson-save-status" aria-live="polite"></p>
+                        <button id="view-as-student" class="small-button" type="button" hidden>Посмотреть как ученик</button>
+                    </div>
+                </footer>
+            </section>
+
+        </main>
+
+        <div id="custom-block-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="custom-block-title">
+                <h2 id="custom-block-title">Свой блок</h2>
+                <form id="custom-block-form">
+                    <label>Тип
+                        <select name="type" required>
+                            <option>Разминка</option><option>Объяснение</option><option>Учебник</option>
+                            <option>Упражнение</option><option>Онлайн-игра</option><option>Видео</option>
+                            <option>Разговорная практика</option><option>Домашнее задание</option>
+                        </select>
+                    </label>
+                    <label>Название<input name="title" required></label>
+                    <label>Описание<textarea name="description" rows="3" required></textarea></label>
+                    <label>Время, минут<input name="time" type="number" min="1" max="180" value="10" required></label>
+                    <label>Как ученик сдаёт это задание?
+                        <select name="submissionType">
+                            <option value="none">Ответ не требуется</option>
+                            <option value="written-photo">Фото письменной работы</option>
+                            <option value="audio">Аудиоответ</option>
+                        </select>
+                    </label>
+                    <div class="modal-actions">
+                        <button type="submit" class="main-button">Добавить</button>
+                        <button id="cancel-custom-block" type="button" class="secondary-button">Отмена</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <div id="source-link-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="source-link-title">
+                <h2 id="source-link-title">Привязать источник</h2>
+                <form id="source-link-form">
+                    <label>Название<input name="title" required></label>
+                    <label>Где хранится<select name="provider"><option value="google-drive">Google Drive</option><option value="yandex-disk">Яндекс Диск</option><option value="web">Веб-ссылка</option><option value="other">Другое</option></select></label>
+                    <label>Ссылка<input name="url" type="url" placeholder="https://" required></label>
+                    <label>Заметка<textarea name="notes" rows="2"></textarea></label>
+                    <p id="source-link-error" class="login-error" aria-live="polite"></p>
+                    <div class="modal-actions"><button type="submit" class="main-button">Сохранить</button><button id="cancel-source-link" type="button" class="secondary-button">Отмена</button></div>
+                </form>
+            </section>
+        </div>
+        <div id="library-add-choice-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="library-add-choice-title">
+                <h2 id="library-add-choice-title">Что добавить?</h2>
+                <div class="library-add-choices">
+                    <button type="button" class="secondary-button" data-library-add-type="source">Учебник / пособие</button>
+                    <button type="button" class="secondary-button" data-library-add-type="Рабочий лист">Рабочий лист</button>
+                    <button type="button" class="secondary-button" data-library-add-type="online-game">Онлайн-игру</button>
+                    <button type="button" class="secondary-button" data-library-add-type="Видео">Видео</button>
+                    <button type="button" class="secondary-button" data-library-add-type="Ссылка">Ссылку</button>
+                    <button type="button" class="secondary-button" data-library-add-type="Другое">Другое</button>
+                </div>
+                <div class="modal-actions"><button id="cancel-library-add-choice" type="button" class="secondary-button">Отмена</button></div>
+            </section>
+        </div>
+        <div id="source-unlink-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="source-unlink-title">
+                <h2 id="source-unlink-title">Удалить привязку?</h2>
+                <p id="source-unlink-message"></p>
+                <p id="source-unlink-error" class="login-error" aria-live="polite"></p>
+                <div class="modal-actions"><button id="confirm-source-unlink" type="button" class="danger-button">Удалить привязку</button><button id="cancel-source-unlink" type="button" class="secondary-button">Отмена</button></div>
+            </section>
+        </div>
+
+        <div id="block-submission-warning-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="block-submission-warning-title"><h2 id="block-submission-warning-title">Изменить способ сдачи?</h2><p>По этому этапу уже есть работа ученика. Изменение способа сдачи может повлиять на проверку.</p><div class="modal-actions"><button id="confirm-block-submission-change" class="main-button" type="button">Всё равно изменить</button><button id="cancel-block-submission-change" class="secondary-button" type="button">Отмена</button></div></section>
+        </div>
+
+        <div id="student-choice-modal" class="modal-backdrop" hidden>
+            <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="student-choice-title">
+                <h2 id="student-choice-title">Выберите ученика</h2>
+                <p>В чей план добавить материал?</p>
+                <div class="student-choice-actions">
+                    <button class="secondary-button" data-lesson-student="Миша">Миша</button>
+                    <button class="secondary-button" data-lesson-student="Аня">Аня</button>
+                    <button class="secondary-button" data-lesson-student="Лена">Лена</button>
+                </div>
+                <button id="cancel-student-choice" class="modal-cancel-link">Отмена</button>
+            </section>
+        </div>
+
+    </section>
+
+    <div id="written-submission-modal" class="modal-backdrop" hidden>
+        <section class="material-modal written-submission-modal" role="dialog" aria-modal="true" aria-labelledby="written-submission-title">
+            <h2 id="written-submission-title">Отправить письменную работу</h2>
+            <h3 id="written-submission-assignment"></h3>
+            <p>Можно сфотографировать тетрадь или выбрать готовые фотографии.</p>
+            <div class="written-picker-actions">
+                <button id="written-camera-button" class="secondary-button" type="button">📷 Сфотографировать</button>
+                <button id="written-gallery-button" class="secondary-button" type="button">🖼 Выбрать фото</button>
+                <input id="written-camera-input" class="visually-hidden" type="file" accept="image/*" capture="environment">
+                <input id="written-gallery-input" class="visually-hidden" type="file" accept="image/*" multiple>
+            </div>
+            <div id="written-photo-previews" class="written-photo-previews"></div>
+            <p id="written-photo-count">0 из 5 фотографий</p>
+            <p id="written-submission-status" class="login-error" aria-live="polite"></p>
+            <div class="modal-actions"><button id="send-written-submission" class="main-button" type="button">Отправить преподавателю</button><button id="close-written-submission" class="secondary-button" type="button">Закрыть</button></div>
+        </section>
+    </div>
+
+    <div id="written-review-modal" class="modal-backdrop written-review-backdrop" hidden>
+        <section class="written-review-modal" role="dialog" aria-modal="true" aria-labelledby="written-review-title">
+            <header class="preview-header">
+                <div><h2 id="written-review-title">Письменная работа</h2><p id="written-review-meta"></p></div>
+                <button id="close-written-review-icon" class="preview-close-icon" type="button" aria-label="Закрыть">×</button>
+            </header>
+            <div id="written-review-loading" class="written-review-loading">Загружаем работу…</div>
+            <div id="written-review-viewer" class="written-review-viewer" hidden>
+                <button id="written-review-image-button" class="written-review-image-button" type="button" aria-label="Увеличить фотографию"><img id="written-review-image" alt="Письменная работа"></button>
+                <div class="written-review-toolbar"><button id="written-review-previous" class="secondary-button" type="button">← Предыдущая</button><strong id="written-review-counter"></strong><button id="written-review-next" class="secondary-button" type="button">Следующая →</button><button id="written-review-zoom" class="secondary-button" type="button">Увеличить</button></div>
+                <div id="written-review-thumbnails" class="written-review-thumbnails"></div>
+            </div>
+            <p id="written-review-error" class="login-error" aria-live="polite"></p>
+            <label class="written-review-comment">Комментарий ученику<textarea id="written-review-comment" rows="4" placeholder="Напишите, что получилось хорошо и что нужно исправить…"></textarea></label>
+            <p id="written-review-action-status" class="login-error" aria-live="polite"></p>
+            <footer class="preview-footer written-review-actions"><button id="verify-written-review" class="main-button" type="button">✓ Принять работу</button><button id="return-written-review" class="secondary-button" type="button">↩ Вернуть на доработку</button><button id="close-written-review" class="secondary-button" type="button">Закрыть</button></footer>
+        </section>
+    </div>
+
+    <div id="audio-submission-modal" class="modal-backdrop" hidden>
+        <section class="material-modal audio-submission-modal" role="dialog" aria-modal="true" aria-labelledby="audio-submission-title">
+            <h2 id="audio-submission-title">Отправить аудиоответ</h2><h3 id="audio-submission-assignment"></h3>
+            <p>Можно записать ответ прямо здесь или выбрать готовый аудиофайл.</p><p class="audio-limit-note">Максимальная длительность — 10 минут</p>
+            <div class="audio-picker-actions"><button id="audio-record-button" class="main-button" type="button">🎙 Начать запись</button><button id="audio-file-button" class="secondary-button" type="button">📎 Выбрать аудиофайл</button><input id="audio-file-input" class="visually-hidden" type="file" accept="audio/*"></div>
+            <div id="audio-recording-state" class="audio-recording-state" hidden><strong>● Идёт запись</strong><span id="audio-recording-time">00:00</span><button id="audio-stop-button" class="secondary-button" type="button">■ Остановить</button></div>
+            <div id="audio-local-preview" class="audio-local-preview" hidden><audio id="audio-local-player" controls></audio><p id="audio-local-meta"></p><button id="audio-record-again" class="secondary-button" type="button">Записать заново</button></div>
+            <p id="audio-submission-status" class="login-error" aria-live="polite"></p>
+            <div class="modal-actions"><button id="send-audio-submission" class="main-button" type="button">Отправить преподавателю</button><button id="close-audio-submission" class="secondary-button" type="button">Закрыть</button></div>
+        </section>
+    </div>
+
+    <div id="audio-review-modal" class="modal-backdrop written-review-backdrop" hidden>
+        <section class="written-review-modal audio-review-modal" role="dialog" aria-modal="true" aria-labelledby="audio-review-title">
+            <header class="preview-header"><div><h2 id="audio-review-title">Аудиоответ</h2><p id="audio-review-meta"></p></div><button id="close-audio-review-icon" class="preview-close-icon" type="button">×</button></header>
+            <div id="audio-review-loading" class="written-review-loading">Загружаем аудио…</div><audio id="audio-review-player" controls hidden></audio><p id="audio-review-error" class="login-error"></p>
+            <label class="written-review-comment">Комментарий ученику<textarea id="audio-review-comment" rows="4" placeholder="Напишите, что получилось хорошо и что нужно исправить…"></textarea></label><p id="audio-review-action-status" class="login-error"></p>
+            <footer class="preview-footer written-review-actions"><button id="verify-audio-review" class="main-button" type="button">✓ Принять работу</button><button id="return-audio-review" class="secondary-button" type="button">↩ Вернуть на доработку</button><button id="close-audio-review" class="secondary-button" type="button">Закрыть</button></footer>
+        </section>
+    </div>
+
+    <div id="wordwall-review-modal" class="modal-backdrop" hidden>
+        <section class="material-modal wordwall-review-modal" role="dialog" aria-modal="true" aria-labelledby="wordwall-review-title">
+            <h2 id="wordwall-review-title">Проверка Wordwall</h2><div id="wordwall-review-details"></div>
+            <a class="main-button link-button" href="https://wordwall.net/myresults" target="_blank" rel="noopener noreferrer">↗ Открыть результаты Wordwall</a>
+            <fieldset class="wordwall-result-fields"><legend>Результат</legend><label>Результат, %<span class="number-suffix"><input id="wordwall-score" type="number" min="0" max="100" step="1"> %</span></label><label>Ошибок<input id="wordwall-mistakes-count" type="number" min="0" step="1"></label><label>Время выполнения<input id="wordwall-duration" inputmode="numeric" placeholder="мм:сс" pattern="[0-9]+:[0-5][0-9]"></label><label class="wordwall-mistake-notes">Ошибки / трудные места<textarea id="wordwall-mistake-notes" rows="4" placeholder="Например:&#10;went / gone&#10;bought / brought"></textarea></label></fieldset>
+            <div id="wordwall-focus-selection" class="wordwall-focus-selection" hidden><strong>Добавить в трудные места ученика</strong><div id="wordwall-focus-options"></div></div>
+            <label class="written-review-comment">Комментарий ученику<textarea id="wordwall-review-comment" rows="4" placeholder="Комментарий ученику…"></textarea></label><p id="wordwall-review-status" class="login-error" aria-live="polite"></p>
+            <div class="modal-actions wordwall-review-actions"><button id="verify-wordwall-review" class="main-button" type="button">✓ Подтвердить выполнение</button><button id="return-wordwall-review" class="secondary-button" type="button">↩ Вернуть ученику</button><button id="close-wordwall-review" class="secondary-button" type="button">Закрыть</button></div>
+        </section>
+    </div>
+
+    <div id="youglish-modal" class="modal-backdrop" hidden>
+        <section class="youglish-modal" role="dialog" aria-modal="true" aria-labelledby="youglish-title">
+            <header class="preview-header">
+                <div>
+                    <h2 id="youglish-title">Найти слово в живой речи</h2>
+                    <p>Послушайте, как слово или выражение звучит в реальных видео</p>
+                </div>
+                <button id="close-youglish-icon" class="preview-close-icon" type="button" aria-label="Закрыть">×</button>
+            </header>
+
+            <form id="youglish-search-form" class="youglish-search-form">
+                <label>Слово или выражение
+                    <input id="youglish-query" name="query" placeholder="Например: went, used to, 朋友" required>
+                </label>
+                <label>Язык
+                    <select id="youglish-language" name="language">
+                        <option value="english">English</option>
+                        <option value="chinese">Chinese</option>
+                    </select>
+                </label>
+                <label><span id="youglish-accent-label">Вариант английского</span>
+                    <select id="youglish-accent" name="accent"></select>
+                </label>
+                <button id="youglish-search-button" class="main-button" type="submit" disabled>Найти примеры</button>
+            </form>
+
+            <p id="youglish-status" class="youglish-status" aria-live="polite">Подготовка поиска…</p>
+            <div id="youglish-widget" class="youglish-widget-area"></div>
+
+            <div class="youglish-controls" aria-label="Управление примерами">
+                <button id="youglish-previous" class="secondary-button" disabled>← Предыдущий</button>
+                <button id="youglish-replay" class="secondary-button" disabled>↻ Повторить</button>
+                <button id="youglish-next" class="secondary-button" disabled>Следующий →</button>
+                <label>Скорость:
+                    <select id="youglish-speed" disabled>
+                        <option value="0.75">0.75×</option>
+                        <option value="1" selected>1×</option>
+                        <option value="1.25">1.25×</option>
+                    </select>
+                </label>
+            </div>
+
+            <section id="youglish-lesson-options" class="youglish-lesson-options">
+                <h3>Как использовать на уроке</h3>
+                <div class="youglish-options-grid">
+                    <label>Количество примеров
+                        <select id="youglish-example-count"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select>
+                    </label>
+                    <label>Инструкция ученику
+                        <textarea id="youglish-instruction" rows="3">Послушай примеры и обрати внимание, как слово используется в живой речи.</textarea>
+                    </label>
+                </div>
+                <div class="youglish-modal-actions">
+                    <button id="add-youglish-to-lesson" class="main-button" type="button">+ Добавить в урок</button>
+                    <button id="close-youglish" class="secondary-button" type="button">Закрыть</button>
+                </div>
+            </section>
+        </section>
+    </div>
+
+
+    <!-- КАБИНЕТ УЧЕНИКА -->
+    <section id="student-screen" class="screen student-app student-app-shell">
+        <aside class="student-sidebar student-app-sidebar">
+            <div class="student-sidebar-brand"><span>LF</span><strong>LessonFlow</strong></div>
+            <nav class="student-app-nav" aria-label="Навигация ученика">
+                <button type="button" class="student-nav-item is-active" data-student-nav="home"><img src="assets/student-dashboard/icons/icon-home.png" alt="">Главная</button>
+                <button type="button" class="student-nav-item" data-student-nav="lessons"><img src="assets/student-dashboard/icons/icon-lessons.png" alt="">Мои уроки</button>
+                <button type="button" class="student-nav-item" data-student-nav="program"><img src="assets/student-dashboard/icons/icon-program.png" alt="">Программа</button>
+                <button type="button" class="student-nav-item" data-student-nav="homework"><img src="assets/student-dashboard/icons/icon-homework.png" alt="">Домашние задания</button>
+                <button type="button" class="student-nav-item" data-student-nav="vocabulary"><img src="assets/student-dashboard/icons/icon-vocab.png" alt="">Словарь</button>
+                <button type="button" class="student-nav-item" data-student-nav="progress"><img src="assets/student-dashboard/icons/icon-trophy.png" alt="">Прогресс и достижения</button>
+                <button type="button" class="student-nav-item" data-student-nav="messages"><img src="assets/student-dashboard/icons/icon-messages.png" alt="">Сообщения</button>
+                <button type="button" class="student-nav-item" data-student-nav="settings"><img src="assets/student-dashboard/icons/icon-settings.png" alt="">Настройки</button>
+            </nav>
+            <footer class="student-sidebar-footer">
+                <div class="student-streak-card">
+                    <img src="assets/student-dashboard/decorative/badge-streak.png" alt="">
+                    <div><span>Серия успеха</span><strong id="student-streak-value"></strong><small>Продолжай в своём темпе</small></div>
+                </div>
+                <div class="student-sidebar-london" aria-hidden="true"><img src="assets/student-dashboard/illustrations/sidebar-london.png" alt=""></div>
+            </footer>
+        </aside>
+        <div class="student-main student-app-main">
+            <header class="student-page-header student-app-header">
+                <div><h1 id="student-greeting">Привет!</h1><p>Сегодня отличный день, чтобы сделать ещё один шаг вперёд.</p></div>
+                <div class="student-profile-chip"><span class="student-stars" title="Награды" hidden><img src="assets/student-dashboard/icons/icon-star.png" alt="Награды"><strong id="student-points-value"></strong></span><img class="student-profile-avatar" src="assets/student-dashboard/Avatars/avatar-student-male.png" alt="Аватар ученика"><button type="button" class="logout-button student-logout-button" title="Выйти" aria-label="Выйти"><span aria-hidden="true">↪</span>Выйти</button></div>
+            </header>
+            <main class="student-page student-page-content student-dashboard">
+                <p id="student-dashboard-date" class="student-dashboard-date"></p>
+                <div id="student-published-summary"></div>
+            </main>
+            <main id="student-section-content" class="student-page student-page-content student-section-content" hidden></main>
+        </div>
+    </section>
+
+    <section id="vocabulary-trainer-screen" class="screen vocabulary-trainer-screen">
+        <main class="vocabulary-trainer-shell">
+            <header class="vocabulary-trainer-header"><button id="exit-vocabulary-trainer" type="button" class="vocabulary-exit-button">← Назад</button><div class="vocabulary-header-title"><p class="small-title">СЛОВА НА СЕГОДНЯ</p><strong id="vocabulary-trainer-progress">1 / 4</strong></div><p id="vocabulary-trainer-topic" class="vocabulary-header-topic"></p></header>
+            <div class="vocabulary-trainer-track"><div id="vocabulary-trainer-progress-fill"></div></div>
+            <div id="vocabulary-session-indicator" class="vocabulary-session-indicator"></div>
+            <section id="vocabulary-trainer-content" class="vocabulary-trainer-card"></section>
+        </main>
+    </section>
+
+    <section id="student-lesson-screen" class="screen student-lesson-page">
+        <header class="topbar">
+            <div><p class="logo">LessonFlow</p><p class="role">Мой урок</p></div>
+            <button id="back-from-student-lesson" class="logout-button">← Назад</button>
+        </header>
+        <main class="student-lesson-content">
+            <button id="back-to-teacher-preview" class="teacher-preview-back" hidden>← Вернуться в кабинет преподавателя</button>
+            <p class="small-title">ТВОЙ УРОК</p>
+            <h2 id="student-lesson-title"></h2>
+            <p id="student-lesson-meta" class="subtitle-left"></p>
+            <section class="student-lesson-progress">
+                <div><strong id="student-progress-text">Выполнено 0 из 0</strong><span id="student-remaining-text"></span></div>
+                <div class="student-progress-track"><div id="student-progress-fill"></div></div>
+            </section>
+            <div id="student-lesson-blocks" class="student-lesson-blocks"></div>
+            <section class="student-reflection">
+                <h3>Как тебе эта тема?</h3>
+                <div id="reflection-options" class="reflection-options">
+                    <button data-reflection="expert">😎 Могу объяснить другому</button>
+                    <button data-reflection="clear">🙂 В целом понятно</button>
+                    <button data-reflection="practice">🤔 Нужно ещё потренироваться</button>
+                    <button data-reflection="unclear">🌫 Пока туманно</button>
+                </div>
+                <button id="repeat-request" class="repeat-request-button">↻ Хочу ещё раз разобрать эту тему</button>
+            </section>
+        </main>
+    </section>
+    <div id="student-game-modal" class="modal-backdrop student-game-backdrop" hidden>
+        <section class="student-game-modal" role="dialog" aria-modal="true" aria-labelledby="student-game-title">
+            <header class="student-game-header"><button id="student-game-back" type="button" class="secondary-button">← Назад к уроку</button><div><h2 id="student-game-title">Упражнение</h2><p id="student-game-meta"></p></div><button id="student-game-close-icon" class="preview-close-icon" type="button" aria-label="Закрыть">×</button></header>
+            <div id="student-game-frame-wrap" class="student-game-frame-wrap"><iframe id="student-game-frame" title="Онлайн-упражнение" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+            <div class="student-game-fallback"><p>Если упражнение не отображается, оно откроется на сайте сервиса.</p><a id="student-game-open" class="secondary-button link-button" target="_blank" rel="noopener noreferrer">🎮 Открыть упражнение ↗</a></div>
+            <footer class="student-game-footer"><a id="student-game-open-footer" class="secondary-button link-button" target="_blank" rel="noopener noreferrer">↗ Открыть отдельно</a><button id="student-game-complete" type="button" class="main-button">✓ Я закончил</button><button id="student-game-close" type="button" class="secondary-button">Закрыть</button></footer>
+        </section>
+    </div>
+<!-- ЭКРАН СО СПИСКОМ УЧЕНИКОВ -->
+<section id="students-screen" class="screen teacher-app teacher-internal-screen">
+
+    <header class="topbar">
+
+        <div>
+            <p class="logo">LessonFlow</p>
+            <p class="role">Ученики</p>
+        </div>
+
+        <button id="back-from-students" class="logout-button teacher-back-button">
+            ← Назад
+        </button>
+
+    </header>
+
+    <main class="student-dashboard">
+
+        <p class="small-title">
+            МОИ УЧЕНИКИ
+        </p>
+
+        <div class="students-heading"><h2>Ученики</h2><button id="add-student-button" class="main-button" type="button">+ Добавить ученика</button></div>
+
+        <p class="subtitle-left">
+            Здесь будут храниться данные об учениках, их темах и прогрессе.
+        </p>
+
+        <p id="students-status" class="lesson-save-status" aria-live="polite"></p>
+        <div id="firebase-students-grid" class="student-dashboard-grid"></div>
+        <div id="demo-students-grid" class="student-dashboard-grid">
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    9 КЛАСС · АНГЛИЙСКИЙ
+                </p>
+
+                <h3>Миша</h3>
+
+                <p>
+                    Учебник: Комарова
+                </p>
+
+                <p>
+                    Сейчас: <strong>Present Perfect</strong>
+                </p>
+
+                <button id="open-misha" class="small-button">
+    Открыть ученика
+</button>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    HSK 2 · КИТАЙСКИЙ
+                </p>
+
+                <h3>Аня</h3>
+
+                <p>
+                    Сейчас: <strong>正在 / 在</strong>
+                </p>
+
+                <button class="small-button">
+                    Открыть ученика
+                </button>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    B1 · АНГЛИЙСКИЙ
+                </p>
+
+                <h3>Лена</h3>
+
+                <p>
+                    Сейчас: <strong>Travel</strong>
+                </p>
+
+                <button class="small-button">
+                    Открыть ученика
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="student-modal" class="modal-backdrop" hidden><section class="material-modal" role="dialog" aria-modal="true" aria-labelledby="student-modal-title"><h2 id="student-modal-title">Добавить ученика</h2><form id="student-form">
+        <label>Имя<input name="name" required></label><label>Предмет<input name="subject" required></label><label>Класс / уровень<input name="level" required></label><label>Учебник<input name="textbook"></label><label>Текущая тема<input name="currentTopic"></label><label>Что повторить<input name="repeatTopic"></label>
+        <fieldset class="student-avatar-picker"><legend>Аватар</legend><div class="student-avatar-options">
+            <label><input type="radio" name="avatarKey" value="boy-01"><img src="assets/teacher/avatars/avatar-student-boy-01.png" alt="Мальчик 1"><span>✓</span></label><label><input type="radio" name="avatarKey" value="boy-02"><img src="assets/teacher/avatars/avatar-student-boy-02.png" alt="Мальчик 2"><span>✓</span></label><label><input type="radio" name="avatarKey" value="boy-03"><img src="assets/teacher/avatars/avatar-student-boy-03.png" alt="Мальчик 3"><span>✓</span></label><label><input type="radio" name="avatarKey" value="girl-01"><img src="assets/teacher/avatars/avatar-student-girl-01.png" alt="Девочка 1"><span>✓</span></label><label><input type="radio" name="avatarKey" value="girl-02"><img src="assets/teacher/avatars/avatar-student-girl-02.png" alt="Девочка 2"><span>✓</span></label><label><input type="radio" name="avatarKey" value="girl-03"><img src="assets/teacher/avatars/avatar-student-girl-03.png" alt="Девочка 3"><span>✓</span></label>
+        </div></fieldset>
+        <fieldset class="student-weekly-schedule"><legend>Расписание занятий</legend><label class="student-schedule-start"><span id="student-schedule-start-label">Дата начала занятий</span><input name="scheduleStartDate" type="date" required></label><div class="student-weekly-schedule-head" aria-hidden="true"><span>День недели</span><span>Время</span><span>Продолжительность</span><span></span></div><div id="student-weekly-schedule-rows" class="student-weekly-schedule-rows"></div><button id="add-student-weekly-slot" type="button" class="secondary-button student-add-slot">+ Добавить занятие</button><p id="student-weekly-schedule-error" class="login-error" aria-live="polite"></p></fieldset>
+        <section id="student-account-section" class="student-account-section"><h3>Аккаунт ученика</h3><p id="student-account-status">Аккаунт будет добавлен позже</p><label id="student-account-select-row">Подключить существующий аккаунт<select id="student-account" name="authUid"><option value="">Аккаунт будет добавлен позже</option></select></label><button id="create-student-account" type="button" class="secondary-button" hidden>Создать аккаунт</button></section><div class="modal-actions"><button type="submit" class="main-button">Сохранить ученика</button><button id="cancel-student" type="button" class="secondary-button">Отмена</button></div>
+    </form></section></div>
+    <div id="student-account-modal" class="modal-backdrop" hidden><section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="student-account-modal-title"><h2 id="student-account-modal-title">Создать аккаунт ученика</h2><form id="student-account-form"><label>Логин (email)<input name="email" type="email" autocomplete="off" required></label><label>Временный пароль<input name="password" type="password" minlength="6" autocomplete="new-password" required></label><p id="student-account-error" class="login-error" role="alert" aria-live="polite"></p><div id="student-account-result" class="student-account-result" hidden></div><div class="modal-actions"><button type="submit" class="main-button">Создать аккаунт</button><button id="cancel-student-account" type="button" class="secondary-button">Отмена</button></div></form></section></div>
+    <div id="delete-student-modal" class="modal-backdrop" hidden><section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="delete-student-title"><h2 id="delete-student-title">Архивировать ученика?</h2><p id="delete-student-message"></p><div class="modal-actions"><button id="confirm-delete-student" type="button" class="danger-button">Архивировать</button><button id="cancel-delete-student" type="button" class="secondary-button">Отмена</button></div></section></div>
+</section>
+<!-- КАРТОЧКА УЧЕНИКА: МИША -->
+<section id="misha-screen" class="screen teacher-app teacher-internal-screen">
+
+    <header class="topbar">
+
+        <div>
+            <p class="logo">LessonFlow</p>
+            <p class="role">Карточка ученика</p>
+        </div>
+
+        <button id="back-from-misha" class="logout-button teacher-back-button">
+            ← Назад
+        </button>
+
+    </header>
+
+
+    <main class="student-dashboard">
+
+        <p id="student-card-meta" class="small-title">
+            9 КЛАСС · АНГЛИЙСКИЙ
+        </p>
+
+        <h2 id="student-card-name">Миша</h2>
+
+        <p id="student-card-textbook" class="subtitle-left">
+            Учебник: Комарова
+        </p>
+<div class="student-tabs">
+
+    <button class="student-tab active-tab" data-tab="overview">
+        Обзор
+    </button>
+
+    <button class="student-tab" data-tab="lessons">
+        Уроки
+    </button>
+
+    <button class="student-tab" data-tab="repeat">
+        Повторить
+    </button>
+
+    <button class="student-tab" data-tab="homework">
+        Домашнее задание
+    </button>
+
+    <button class="student-tab" data-tab="progress">
+        Прогресс
+    </button>
+
+    <button class="student-tab" data-tab="program">
+        Программа
+    </button>
+
+    <button id="student-vocabulary-tab" class="student-tab" data-tab="vocabulary" type="button" aria-controls="student-vocabulary-panel">
+        Лексика
+    </button>
+
+</div>
+
+        <section class="student-tab-panel active-panel" data-tab-panel="overview">
+        <div class="student-dashboard-grid">
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    СЕЙЧАС ИЗУЧАЕМ
+                </p>
+
+                <h3 id="student-card-current-topic">Present Perfect</h3>
+
+                <p>
+                    Текущая тема
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    НУЖНО ПОВТОРИТЬ
+                </p>
+
+                <h3 id="student-card-repeat-topic">Irregular verbs</h3>
+
+                <p id="student-card-repeat-note">
+                    Также: since / for
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    ПОСЛЕДНЕЕ ДОМАШНЕЕ ЗАДАНИЕ
+                </p>
+
+                <h3 id="student-card-homework-title">Workbook</h3>
+
+                <p id="student-card-homework-description">
+                    p. 8, ex. 3
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <p class="card-label">
+                    ПОСЛЕДНИЙ УРОК
+                </p>
+
+                <h3 id="student-card-last-lesson-date">10 августа</h3>
+
+                <p id="student-card-last-lesson-topic">
+                    Past Simple vs Present Perfect
+                </p>
+
+            </div>
+
+        </div>
+
+        <section id="misha-last-result" class="teacher-result-card" hidden></section>
+
+        <section id="student-regular-schedule" class="regular-schedule-card">
+            <div><p class="card-label">РАСПИСАНИЕ</p><div id="student-regular-schedule-days"><p>Расписание не настроено</p></div></div>
+            <button id="edit-student-schedule" type="button" class="secondary-button">Изменить расписание</button>
+        </section>
+
+
+        <div style="margin-top: 25px;">
+
+            <button id="prepare-misha-lesson" class="main-button">
+                Подготовить следующий урок
+            </button>
+
+        </div>
+        </section>
+
+        <section class="student-tab-panel" data-tab-panel="lessons" hidden>
+            <h3 class="tab-section-title">История уроков</h3>
+            <div class="detail-list">
+                <article class="detail-row"><time datetime="2026-08-10">10 августа</time><strong>Past Simple vs Present Perfect</strong></article>
+                <article class="detail-row"><time datetime="2026-08-06">6 августа</time><strong>Summer vocabulary</strong></article>
+                <article class="detail-row"><time datetime="2026-08-03">3 августа</time><strong>Past Simple revision</strong></article>
+            </div>
+        </section>
+
+        <section class="student-tab-panel" data-tab-panel="repeat" hidden>
+            <h3 class="tab-section-title">Персональная карта тем</h3>
+            <div class="detail-list">
+                <article class="detail-row"><strong>Irregular verbs</strong><span class="topic-status status-repeat">Нужно повторить</span></article>
+                <article class="detail-row"><strong>since / for</strong><span class="topic-status status-training">Тренируем</span></article>
+                <article class="detail-row"><strong>Past Simple</strong><span class="topic-status status-confident">Уверенно</span></article>
+                <article class="detail-row"><strong>Present Perfect</strong><span id="present-perfect-status" class="topic-status status-current">Сейчас изучаем</span></article>
+            </div>
+        </section>
+
+        <section class="student-tab-panel" data-tab-panel="homework" hidden>
+            <h3 class="tab-section-title">Домашнее задание</h3>
+            <div class="detail-list">
+                <article class="detail-row"><strong>Workbook p. 8 ex. 3</strong><span class="topic-status status-not-done">Не выполнено</span></article>
+                <article class="detail-row"><strong>Irregular verbs online practice</strong><span class="topic-status status-not-done">Не выполнено</span></article>
+            </div>
+        </section>
+
+        <section class="student-tab-panel" data-tab-panel="progress" hidden>
+            <h3 class="tab-section-title">Прогресс Миши</h3>
+            <div class="progress-summary">
+                <div><strong>3</strong><span>темы освоено</span></div>
+                <div><strong>2</strong><span>темы тренируем</span></div>
+            </div>
+            <div class="progress-track" role="progressbar" aria-label="Освоено тем" aria-valuemin="0" aria-valuemax="5" aria-valuenow="3"><div class="progress-fill"></div></div>
+            <h3 class="mastered-title">Освоенные темы</h3>
+            <ul class="mastered-list"><li>Past Simple</li><li>Summer vocabulary</li><li>there is / there are</li></ul>
+        </section>
+
+        <section class="student-tab-panel" data-tab-panel="program" hidden>
+            <div id="learning-program-content" class="learning-program-content">
+                <p class="student-empty-lesson">Откройте вкладку, чтобы загрузить программу.</p>
+            </div>
+        </section>
+
+        <section id="student-vocabulary-panel" class="student-tab-panel" data-tab-panel="vocabulary" hidden>
+            <div id="vocabulary-program-content" class="learning-program-content">
+                <h3 class="tab-section-title">Лексическая программа</h3>
+                <p class="student-empty-lesson">Для ученика пока не назначена лексическая программа.</p>
+            </div>
+        </section>
+
+    </main>
+
+</section>
+    <div id="student-schedule-modal" class="modal-backdrop" hidden>
+        <section class="material-modal" role="dialog" aria-modal="true" aria-labelledby="student-schedule-title">
+            <h2 id="student-schedule-title">Регулярное расписание</h2>
+            <form id="student-schedule-form">
+                <label>Расписание действует с<input id="student-schedule-valid-from" name="validFrom" type="date" required></label>
+                <div id="student-schedule-days" class="schedule-days-editor"></div>
+                <button id="add-student-schedule-day" type="button" class="secondary-button">+ Добавить день</button>
+                <p id="student-schedule-error" class="login-error" aria-live="polite"></p>
+                <div class="modal-actions"><button type="submit" class="main-button">Сохранить</button><button id="cancel-student-schedule" type="button" class="secondary-button">Отмена</button></div>
+            </form>
+        </section>
+    </div>
+    <div id="program-import-modal" class="modal-backdrop" hidden>
+        <section class="material-modal program-import-modal" role="dialog" aria-modal="true" aria-labelledby="program-import-title">
+            <h2 id="program-import-title">Импортировать программу</h2>
+            <label>Вставьте JSON программы<textarea id="program-import-json" rows="14" spellcheck="false" placeholder='{"program":{"title":"9 класс · Gateway B1"},"lessons":[]}'></textarea></label>
+            <p id="program-import-error" class="login-error" aria-live="polite"></p>
+            <section id="program-import-preview" class="program-import-preview" hidden></section>
+            <div class="modal-actions">
+                <button id="program-import-check" type="button" class="secondary-button">Проверить</button>
+                <button id="program-import-confirm" type="button" class="main-button" hidden>Импортировать</button>
+                <button id="program-import-cancel" type="button" class="secondary-button">Отмена</button>
+            </div>
+        </section>
+    </div>
+    <div id="program-replace-modal" class="modal-backdrop" hidden>
+        <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="program-replace-title">
+            <h2 id="program-replace-title">У ученика уже есть активная программа.</h2>
+            <p>Старая программа останется в базе со статусом «архивная».</p>
+            <div class="modal-actions"><button id="program-replace-confirm" type="button" class="main-button">Архивировать старую и импортировать новую</button><button id="program-replace-cancel" type="button" class="secondary-button">Отмена</button></div>
+        </section>
+    </div>
+    <div id="vocabulary-import-modal" class="modal-backdrop" hidden>
+        <section class="material-modal program-import-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-import-title">
+            <h2 id="vocabulary-import-title">Импортировать лексическую программу</h2>
+            <label>Вставьте JSON программы<textarea id="vocabulary-import-json" rows="14" spellcheck="false" placeholder='{"program":{"title":"9 класс · Gateway B1 + Комарова"},"cards":[],"weeks":[],"dailyPlan":[],"optionalCards":[]}'></textarea></label>
+            <p id="vocabulary-import-error" class="login-error" aria-live="polite"></p>
+            <section id="vocabulary-import-preview" class="program-import-preview" hidden></section>
+            <div class="modal-actions">
+                <button id="vocabulary-import-check" type="button" class="secondary-button">Проверить</button>
+                <button id="vocabulary-import-confirm" type="button" class="main-button" hidden>Импортировать</button>
+                <button id="vocabulary-import-cancel" type="button" class="secondary-button">Отмена</button>
+            </div>
+        </section>
+    </div>
+    <div id="vocabulary-replace-modal" class="modal-backdrop" hidden>
+        <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="vocabulary-replace-title">
+            <h2 id="vocabulary-replace-title">У ученика уже назначена лексическая программа.</h2>
+            <p>Новая программа будет назначена только после полного успешного импорта. Старая программа не удаляется.</p>
+            <div class="modal-actions"><button id="vocabulary-replace-confirm" type="button" class="main-button">Архивировать старую и назначить новую</button><button id="vocabulary-replace-cancel" type="button" class="secondary-button">Отмена</button></div>
+        </section>
+    </div>
+    <div id="history-lesson-modal" class="modal-backdrop" hidden>
+    <section class="history-lesson-modal" role="dialog" aria-modal="true" aria-labelledby="history-lesson-title">
+        <header class="preview-header"><div><p class="small-title">ПРОШЛЫЙ УРОК</p><h2 id="history-lesson-title">Урок</h2><p id="history-lesson-meta"></p></div><button id="close-history-lesson-icon" class="preview-close-icon" type="button" aria-label="Закрыть">×</button></header>
+        <div id="history-lesson-content"></div>
+        <footer class="preview-footer"><button id="close-history-lesson" type="button" class="secondary-button">Закрыть</button></footer>
+    </section>
+    </div>
+
+    <div id="delete-history-lesson-modal" class="modal-backdrop" hidden>
+        <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="delete-history-lesson-title"><h2 id="delete-history-lesson-title">Удалить урок?</h2><p id="delete-history-lesson-message"></p><p id="delete-history-lesson-warning" class="history-delete-warning" hidden></p><p id="delete-history-lesson-status" class="login-error" aria-live="polite"></p><div class="modal-actions"><button id="confirm-delete-history-lesson" class="danger-button" type="button">Удалить урок</button><button id="cancel-delete-history-lesson" class="secondary-button" type="button">Отмена</button></div></section>
+    </div>
+<div id="focus-item-modal" class="modal-backdrop" hidden>
+    <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="focus-item-modal-title">
+        <h2 id="focus-item-modal-title">Добавить в карту</h2>
+        <form id="focus-item-form">
+            <label>Название<input name="title" required></label>
+            <label>Тип<select name="type"><option value="topic">Тема</option><option value="mistake">Ошибка</option><option value="vocabulary">Слово / лексика</option><option value="pronunciation">Произношение</option></select></label>
+            <label>Статус<select name="status"><option value="repeat">Нужно повторить</option><option value="practice">Тренируем</option><option value="learning">Сейчас изучаем</option><option value="confident">Уверенно</option></select></label>
+            <label>Комментарий преподавателя<textarea name="note" rows="3"></textarea></label>
+            <p id="focus-item-error" class="login-error" aria-live="polite"></p>
+            <div class="modal-actions"><button type="submit" class="main-button">Сохранить</button><button id="cancel-focus-item" type="button" class="secondary-button">Отмена</button></div>
+        </form>
+    </section>
+</div>
+<div id="find-more-modal" class="modal-backdrop" hidden>
+    <section id="find-more-dialog" class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="find-more-title">
+        <h2 id="find-more-title">Найти дополнительные материалы</h2>
+        <p>Тема: <strong id="find-more-topic"></strong></p>
+        <div class="find-more-actions"><button id="find-more-video" type="button" class="secondary-button">🎬 Видео</button><button id="find-more-exercise" type="button" class="secondary-button">🎮 Онлайн-упражнение</button><button id="add-found-resource" type="button" class="main-button">🔗 Добавить найденный ресурс</button></div>
+        <p id="find-more-message" class="find-more-message" aria-live="polite"></p>
+        <section id="youtube-search-panel" class="youtube-search-panel" hidden>
+            <form id="youtube-search-form"><label>Поиск видео<input id="youtube-search-query" name="query" required></label><button id="youtube-search-button" type="submit" class="main-button">Найти</button></form>
+            <p id="youtube-search-status" class="find-more-message" aria-live="polite"></p>
+            <div id="youtube-search-results" class="youtube-search-results"></div>
+        </section>
+        <section id="exercise-search-panel" class="exercise-search-panel" hidden>
+            <h3>Где искать?</h3>
+            <label>Поисковая фраза<input id="exercise-search-query"></label>
+            <div class="exercise-source-grid">
+                <article><h4>Wordwall</h4><p>Интерактивные игры и упражнения</p><a class="secondary-button link-button" href="https://wordwall.net/community" target="_blank" rel="noopener noreferrer">Искать на Wordwall ↗</a><button type="button" class="secondary-button copy-exercise-query">Скопировать запрос</button></article>
+                <article><h4>LearningApps</h4><p>Интерактивные учебные задания</p><a class="secondary-button link-button" href="https://learningapps.org/" target="_blank" rel="noopener noreferrer">Искать в LearningApps ↗</a><button type="button" class="secondary-button copy-exercise-query">Скопировать запрос</button></article>
+                <article><h4>Другой ресурс</h4><p>Добавить найденную ссылку вручную</p><button id="copy-exercise-query" type="button" class="secondary-button">Скопировать запрос</button></article>
+            </div>
+            <p id="exercise-copy-status" class="find-more-message" aria-live="polite"></p>
+            <div class="exercise-url-check"><h3>Нашли подходящее упражнение?</h3><label>Ссылка на упражнение<input id="exercise-resource-url" type="url" placeholder="https://"></label><button id="check-exercise-resource" type="button" class="main-button">Проверить</button></div>
+            <p id="exercise-resource-status" class="find-more-message" aria-live="polite"></p>
+            <div id="exercise-resource-actions" class="youtube-followup-actions" hidden><button id="save-exercise-resource" type="button" class="main-button">+ В библиотеку</button><button id="add-existing-exercise" type="button" class="small-button" hidden>+ Добавить в урок</button></div>
+        </section>
+        <div class="modal-actions"><button id="close-find-more" type="button" class="secondary-button">Закрыть</button></div>
+    </section>
+</div>
+    <script src="youtube-config.js"></script>
+    <script defer src="app.js?v=20260815-student-account"></script>
+    <script type="module" src="firebase-auth.js?v=20260815-student-account"></script>
+
+</body>
+</html>

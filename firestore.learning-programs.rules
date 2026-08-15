@@ -1,0 +1,25 @@
+// Merge this block inside the existing `match /databases/{database}/documents`.
+// It is deliberately a fragment: deploying it alone would replace and break the
+// rules for the existing LessonFlow collections.
+
+match /learningPrograms/{programId} {
+  allow read: if request.auth != null
+              && resource.data.teacherUid == request.auth.uid;
+
+  allow create: if request.auth != null
+                && request.resource.data.teacherUid == request.auth.uid;
+
+  allow update: if request.auth != null
+                && resource.data.teacherUid == request.auth.uid
+                && request.resource.data.teacherUid == request.auth.uid;
+
+  allow delete: if request.auth != null
+                && resource.data.teacherUid == request.auth.uid;
+
+  match /lessons/{planLessonId} {
+    allow read, create, update, delete: if request.auth != null
+      && get(
+        /databases/$(database)/documents/learningPrograms/$(programId)
+      ).data.teacherUid == request.auth.uid;
+  }
+}

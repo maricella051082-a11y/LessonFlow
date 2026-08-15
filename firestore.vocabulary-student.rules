@@ -1,0 +1,41 @@
+// Merge these additive permissions into the corresponding existing matches.
+// Do not deploy this fragment alone and do not replace the teacher permissions.
+
+// Inside match /vocabularyPrograms/{vocabProgramId}:
+allow read: if request.auth != null
+  && get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.studentUid == request.auth.uid
+  && get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabProgramId == vocabProgramId;
+
+// Inside each cards, optionalCards, weeks and dailyPlan match below that parent:
+allow read: if request.auth != null
+  && get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.studentUid == request.auth.uid
+  && get(/databases/$(database)/documents/studentVocabulary/$(request.auth.uid)).data.vocabProgramId == vocabProgramId;
+
+// Inside match /studentVocabulary/{studentUid}:
+allow read: if request.auth != null
+            && request.auth.uid == studentUid
+            && resource.data.studentUid == request.auth.uid;
+
+allow update: if request.auth != null
+              && request.auth.uid == studentUid
+              && resource.data.studentUid == request.auth.uid
+              && request.resource.data.studentUid == request.auth.uid
+              && request.resource.data.teacherUid == resource.data.teacherUid
+              && request.resource.data.vocabProgramId == resource.data.vocabProgramId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                "currentDayIndex", "currentWeekNumber", "lastSessionAt",
+                "lastCompletedStudyDayIndex", "lastCompletedAt",
+                "lastSessionSummary", "updatedAt"
+              ]);
+
+// Inside match /studentVocabulary/{studentUid}/cards/{cardId}:
+allow read: if request.auth != null && request.auth.uid == studentUid;
+
+allow create: if request.auth != null
+              && request.auth.uid == studentUid
+              && request.resource.data.cardId == cardId;
+
+allow update: if request.auth != null
+              && request.auth.uid == studentUid
+              && resource.data.cardId == cardId
+              && request.resource.data.cardId == cardId;
