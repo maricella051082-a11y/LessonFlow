@@ -56,6 +56,7 @@ let unsubscribeScheduleEvents = null;
 let unsubscribeSubmissions = null;
 let unsubscribeConversations = null;
 let unsubscribeMessages = null;
+let subscribedMessagesConversationId = null;
 const programAssignmentBootstrapped = new Set();
 const recurringScheduleBootstrapped = new Set();
 window.lessonFlowFirebaseReady = true;
@@ -87,6 +88,7 @@ function stopFirestoreListeners() {
         if (unsubscribe) unsubscribe();
     });
     unsubscribeLesson = unsubscribeProgress = unsubscribeTeacherLesson = unsubscribeTeacherProgress = unsubscribeStudents = unsubscribeHistory = unsubscribeFocusItems = unsubscribeMaterials = unsubscribeSources = unsubscribeScheduleEvents = unsubscribeSubmissions = unsubscribeConversations = unsubscribeMessages = null;
+    subscribedMessagesConversationId = null;
     programAssignmentBootstrapped.clear();
     recurringScheduleBootstrapped.clear();
 }
@@ -156,15 +158,27 @@ async function ensureMessagingConversation(context) {
 }
 
 function subscribeMessagingMessages(conversationId) {
+    if (conversationId && unsubscribeMessages && subscribedMessagesConversationId === conversationId) return;
     if (unsubscribeMessages) unsubscribeMessages();
     unsubscribeMessages = null;
+    subscribedMessagesConversationId = null;
     if (!conversationId) return;
-    unsubscribeMessages = onSnapshot(query(collection(db, "conversations", conversationId, "messages"), orderBy("createdAt", "asc")), function(snapshot) {
-        window.dispatchEvent(new CustomEvent("lessonflow:messages", { detail: { conversationId: conversationId, messages: snapshot.docs.map(function(item) { return { id: item.id, ...item.data() }; }) } }));
-    }, function(error) {
-        console.error("Messaging listener error:", error);
-        window.dispatchEvent(new CustomEvent("lessonflow:messaging-error", { detail: firestoreMessage(error) }));
-    });
+    subscribedMessagesConversationId = conversationId;
+    try {
+        unsubscribeMessages = onSnapshot(query(collection(db, "conversations", conversationId, "messages"), orderBy("createdAt", "asc")), function(snapshot) {
+            window.dispatchEvent(new CustomEvent("lessonflow:messages", { detail: { conversationId: conversationId, messages: snapshot.docs.map(function(item) { return { id: item.id, ...item.data() }; }) } }));
+        }, function(error) {
+            if (subscribedMessagesConversationId === conversationId) {
+                unsubscribeMessages = null;
+                subscribedMessagesConversationId = null;
+            }
+            console.error("Messaging listener error:", error);
+            window.dispatchEvent(new CustomEvent("lessonflow:messaging-error", { detail: firestoreMessage(error) }));
+        });
+    } catch (error) {
+        subscribedMessagesConversationId = null;
+        throw error;
+    }
 }
 
 async function sendMessagingMessage(context, rawText) {
@@ -662,6 +676,7 @@ window.lessonFlowCloud = {
     stopMessageSubscription() {
         if (unsubscribeMessages) unsubscribeMessages();
         unsubscribeMessages = null;
+        subscribedMessagesConversationId = null;
     },
     getVocabularyProgramDay,
     buildVocabularySession,

@@ -771,7 +771,8 @@ function createMessageComposer(context, conversationId, onSent) {
             messagingStickToBottom = true;
             const id = await window.lessonFlowCloud.sendMessage(context, input.value);
             input.value = ""; counter.textContent = "0 / 2000";
-            if (id !== conversationId) { activeMessagingConversationId = id; window.lessonFlowCloud.subscribeToMessages(id); }
+            if (id !== conversationId) activeMessagingConversationId = id;
+            window.lessonFlowCloud.subscribeToMessages(id);
             if (onSent) onSent(id);
         } catch (error) {
             console.error("Message send failed:", error);
@@ -2532,15 +2533,15 @@ function renderStudentMessagesScreen(container, keepScroll) {
     const conversation = messagingConversations.find(function(item) { return item.id === expectedId; });
     if (activeMessagingConversationId !== expectedId) {
         activeMessagingConversationId = expectedId; activeMessagingMessages = []; messagingStickToBottom = true;
-        if (conversation) window.lessonFlowCloud.subscribeToMessages(expectedId);
     }
+    if (conversation) window.lessonFlowCloud.subscribeToMessages(expectedId);
     if (conversation && Number(conversation.unreadStudent || 0) > 0) window.lessonFlowCloud.markConversationRead(expectedId).catch(function(error) { console.error("Student mark read failed:", error); });
     const header = document.createElement("header");
     const teacherAvatar = document.createElement("img"); teacherAvatar.src = "assets/teacher/avatars/avatar-teacher-female.png"; teacherAvatar.alt = ""; header.appendChild(teacherAvatar);
     const title = document.createElement("div"); addTextElement(title, "strong", "", "Ваш преподаватель"); addTextElement(title, "span", "", "Личная переписка по занятиям"); header.appendChild(title); shell.appendChild(header);
     const history = document.createElement("div"); history.className = "student-message-history messaging-thread";
     renderMessageThread(history, conversation, activeMessagingMessages, "Здесь вы можете написать своему преподавателю."); shell.appendChild(history);
-    shell.appendChild(createMessageComposer(context, expectedId, function(id) { if (!conversation) window.lessonFlowCloud.subscribeToMessages(id); }));
+    shell.appendChild(createMessageComposer(context, expectedId, function(id) { window.lessonFlowCloud.subscribeToMessages(id); }));
     container.appendChild(shell);
 }
 function renderStudentSettingsScreen(container) { studentSectionHeading(container, "Настройки", "Профиль и интерфейс"); const profile = document.createElement("section"); profile.className = "student-settings-card"; const avatar = document.createElement("img"); avatar.src = "assets/student-dashboard/Avatars/avatar-student-male.png"; avatar.alt = ""; profile.appendChild(avatar); const copy = document.createElement("div"); addTextElement(copy, "h3", "", firebaseProfile?.name || "Ученик"); addTextElement(copy, "p", "", "Настройки сохраняются только на этом устройстве."); profile.appendChild(copy); container.appendChild(profile); [["Звук", "lessonFlowStudentSound"], ["Анимации", "lessonFlowStudentAnimations"]].forEach(function(item) { const label = document.createElement("label"); label.className = "student-setting-toggle"; addTextElement(label, "span", "", item[0]); const input = document.createElement("input"); input.type = "checkbox"; input.checked = localStorage.getItem(item[1]) !== "off"; input.addEventListener("change", function() { localStorage.setItem(item[1], input.checked ? "on" : "off"); }); label.appendChild(input); container.appendChild(label); }); }
