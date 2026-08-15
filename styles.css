@@ -1422,15 +1422,12 @@ h2 {
 .homework-deadline-fields > label { display: flex; align-items: center; gap: 8px; }
 .homework-custom-deadline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .homework-custom-deadline[hidden] { display: none; }
-.student-vocabulary-stats, .student-metric-grid, .student-achievement-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
-.student-vocabulary-stats article, .student-metric-grid article, .student-achievement-card { padding: 22px; border: 1px solid rgba(220,170,70,.27); border-radius: 20px; background: linear-gradient(145deg,#fffdf8,#fff4df); box-shadow: 0 9px 24px rgba(48,40,20,.08); }
-.student-vocabulary-stats strong, .student-vocabulary-stats span, .student-metric-grid strong, .student-metric-grid span, .student-achievement-card strong, .student-achievement-card span { display: block; }
-.student-vocabulary-stats strong, .student-metric-grid strong { color: #0b55d0; font-size: 34px; }
-.student-vocabulary-stats span, .student-metric-grid span { margin-top: 5px; color: #66748a; }
+.student-vocabulary-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
+.student-vocabulary-stats article { padding: 22px; border: 1px solid rgba(220,170,70,.27); border-radius: 20px; background: linear-gradient(145deg,#fffdf8,#fff4df); box-shadow: 0 9px 24px rgba(48,40,20,.08); }
+.student-vocabulary-stats strong, .student-vocabulary-stats span { display: block; }
+.student-vocabulary-stats strong { color: #0b55d0; font-size: 34px; }
+.student-vocabulary-stats span { margin-top: 5px; color: #66748a; }
 .student-vocabulary-feature { min-height: 230px; padding-right: 42%; background: linear-gradient(90deg,#fffaf2 0 55%,rgba(255,250,242,.2)),url("assets/student-dashboard/illustrations/vocab-review-card.png") right center / 38% auto no-repeat,#fffaf2; }
-.student-achievement-card { text-align: center; }
-.student-achievement-card img { width: 92px; height: 92px; object-fit: contain; opacity: 1; }
-.student-achievement-card.is-locked { filter: grayscale(.9); opacity: .55; }
 .student-message-history { min-height: 280px; }
 .student-message-composer { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; }
 .student-message-composer textarea { min-height: 82px; padding: 14px; border: 1px solid #ddd1ba; border-radius: 14px; background: white; font: inherit; resize: vertical; }
@@ -1443,7 +1440,7 @@ h2 {
 .student-message-card > img { width: 88px; height: 104px; margin-bottom: -20px; }
 @media (max-height: 760px) and (min-width: 781px) { .student-nav-item { padding-block: 7px; } .student-sidebar-footer .student-sidebar-london { height: 122px; } .student-sidebar-footer .student-streak-card { padding: 9px; } }
 @media (max-width: 1100px) { .student-week-calendar { gap: 6px; } .student-calendar-day { min-height: 155px; padding: 10px 7px; } .student-program-hero { grid-template-columns: 1fr; } .student-program-hero-art { height: 280px; } .student-upcoming-row { grid-template-columns: 150px 62px minmax(0,1fr); } .student-upcoming-row .student-action { grid-column: 3; justify-self: start; } }
-@media (max-width: 780px) { .student-sidebar-footer { display: none; } .student-section-content { padding: 10px 18px 36px; } .student-section-heading { align-items: flex-start; flex-direction: column-reverse; gap: 14px; } .student-section-back { min-width: 104px; min-height: 43px; } .student-week-calendar { grid-template-columns: repeat(7,minmax(118px,1fr)); overflow-x: auto; padding-bottom: 10px; } .student-upcoming-row { grid-template-columns: 1fr; } .student-upcoming-row .student-action { grid-column: auto; } .student-vocabulary-stats, .student-metric-grid, .student-achievement-grid { grid-template-columns: 1fr; } .student-program-hero > div:first-child { padding: 26px 20px; } .student-program-hero-art { height: 220px; } .student-homework-row { grid-template-columns: 36px minmax(0,1fr); } .student-homework-row .student-action { grid-column: 2; justify-self: start; } }
+@media (max-width: 780px) { .student-sidebar-footer { display: none; } .student-section-content { padding: 10px 18px 36px; } .student-section-heading { align-items: flex-start; flex-direction: column-reverse; gap: 14px; } .student-section-back { min-width: 104px; min-height: 43px; } .student-week-calendar { grid-template-columns: repeat(7,minmax(118px,1fr)); overflow-x: auto; padding-bottom: 10px; } .student-upcoming-row { grid-template-columns: 1fr; } .student-upcoming-row .student-action { grid-column: auto; } .student-vocabulary-stats { grid-template-columns: 1fr; } .student-program-hero > div:first-child { padding: 26px 20px; } .student-program-hero-art { height: 220px; } .student-homework-row { grid-template-columns: 36px minmax(0,1fr); } .student-homework-row .student-action { grid-column: 2; justify-self: start; } }
 
 /* LessonFlow shared student design system */
 :root {
