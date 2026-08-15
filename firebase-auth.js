@@ -288,6 +288,9 @@ function subscribeStudentLesson(uid) {
         console.log("WORDWALL SUBMISSIONS LOADED:", submissions.filter(function(item) { return item.type === "wordwall"; }).length);
         window.dispatchEvent(new CustomEvent("lessonflow:cloud-submissions", { detail: submissions }));
     }, reportFirestoreError);
+    unsubscribeScheduleEvents = onSnapshot(query(collection(db, "scheduleEvents"), where("studentAuthUid", "==", uid)), function(snapshot) {
+        window.dispatchEvent(new CustomEvent("lessonflow:student-schedule", { detail: snapshot.docs.map(function(item) { return { id: item.id, ...item.data() }; }) }));
+    }, reportFirestoreError);
     loadStudentDashboardData(uid);
 }
 
@@ -988,6 +991,49 @@ window.lessonFlowCloud = {
         linkedEvents.forEach(function(item) { batch.set(item.ref, { status: "completed", updatedAt: serverTimestamp() }, { merge: true }); });
         await batch.commit();
     },
+    async completeScheduledLesson(eventId) {
+        if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) throw new Error("not-authenticated-teacher");
+        const eventRef = doc(db, "scheduleEvents", eventId);
+        const eventSnapshot = await getDoc(eventRef);
+        if (!eventSnapshot.exists() || eventSnapshot.data().teacherUid !== auth.currentUser.uid) throw Object.assign(new Error("schedule-event-not-found"), { code: "permission-denied" });
+        const event = eventSnapshot.data();
+        if (!event.studentAuthUid || !event.lessonId) throw Object.assign(new Error("published-lesson-not-found"), { code: "failed-precondition" });
+        const currentRef = doc(db, "currentLessons", event.studentAuthUid);
+        const progressRef = doc(db, "currentLessons", event.studentAuthUid, "progress", "state");
+        const [currentSnapshot, progressSnapshot] = await Promise.all([getDoc(currentRef), getDoc(progressRef)]);
+        if (!currentSnapshot.exists() || currentSnapshot.data().teacherUid !== auth.currentUser.uid || currentSnapshot.data().lessonId !== event.lessonId) throw Object.assign(new Error("published-lesson-not-found"), { code: "failed-precondition" });
+        const currentLesson = currentSnapshot.data();
+        const progress = progressSnapshot.exists() ? progressSnapshot.data() : {};
+        const batch = writeBatch(db);
+        batch.set(eventRef, { status: "completed", completedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+        batch.set(currentRef, { status: "completed", completedAt: serverTimestamp(), historyArchivedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+        if (!currentLesson.historyArchivedAt) {
+            batch.set(doc(db, "lessonHistory", event.studentAuthUid, "lessons", event.lessonId), {
+                ...currentLesson,
+                lessonId: event.lessonId,
+                studentUid: event.studentAuthUid,
+                progress: {
+                    completedBlockIds: Array.isArray(progress.completedBlockIds) ? progress.completedBlockIds : [],
+                    selfAssessment: progress.selfAssessment || null,
+                    repeatRequest: Boolean(progress.repeatRequest),
+                    externalChecks: progress.externalChecks || {},
+                    writtenChecks: progress.writtenChecks || {},
+                    audioChecks: progress.audioChecks || {}
+                },
+                status: "completed",
+                completedAt: serverTimestamp(),
+                archivedAt: serverTimestamp()
+            });
+        }
+        if (event.programId && event.planLessonId) {
+            const lessonsSnapshot = await getDocs(collection(db, "learningPrograms", event.programId, "lessons"));
+            const lessons = lessonsSnapshot.docs.map(function(item) { return { id: item.id, ...item.data(), status: item.id === event.planLessonId ? "completed" : item.data().status }; }).sort(function(a, b) { return Number(a.lessonNumber || 0) - Number(b.lessonNumber || 0); });
+            const next = lessons.find(function(item) { return !["completed", "skipped"].includes(item.status); });
+            batch.set(doc(db, "learningPrograms", event.programId, "lessons", event.planLessonId), { status: "completed", completedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+            batch.set(doc(db, "learningPrograms", event.programId), { currentLessonNumber: next ? next.lessonNumber : (lessons.at(-1)?.lessonNumber || 0), updatedAt: serverTimestamp() }, { merge: true });
+        }
+        await batch.commit();
+    },
     watchStudent(studentUid, studentDocId) {
         if (!auth.currentUser || currentProfile?.role !== "teacher" || demoMode) return;
         if (studentUid) subscribeTeacherStudentData(studentUid);
@@ -1241,8 +1287,23 @@ window.lessonFlowCloud = {
             ? crypto.randomUUID()
             : "lesson-" + Date.now() + "-" + Math.random().toString(16).slice(2);
         const batch = writeBatch(db);
+        const homeworkMetadata = {};
+        const scheduleSnapshot = await getDocs(query(collection(db, "scheduleEvents"), where("teacherUid", "==", auth.currentUser.uid)));
+        const anchorEvent = lesson.scheduleEventId ? scheduleSnapshot.docs.find(function(item) { return item.id === lesson.scheduleEventId; }) : null;
+        const anchorKey = anchorEvent ? String(anchorEvent.data().date || "") + "T" + String(anchorEvent.data().startTime || "00:00") : String(lesson.date || "") + "T23:59";
+        const nextEvent = scheduleSnapshot.docs.map(function(item) { return { id: item.id, ...item.data() }; }).filter(function(event) { return event.studentDocId === student.id && event.status !== "cancelled" && (String(event.date || "") + "T" + String(event.startTime || "00:00")) > anchorKey; }).sort(function(a, b) { return (a.date + a.startTime).localeCompare(b.date + b.startTime); })[0] || null;
+        (lesson.blocks || []).filter(function(block) { return String(block.type || "").toLocaleLowerCase("ru").includes("домашнее задание"); }).forEach(function(block) {
+            const dueMode = block.homeworkDueMode === "custom" ? "custom" : "next-lesson";
+            const customDate = dueMode === "custom" && block.homeworkDueDate ? new Date(block.homeworkDueDate + "T" + (block.homeworkDueTime || "23:59") + ":00") : null;
+            homeworkMetadata[block.id] = {
+                homeworkDueMode: dueMode,
+                assignedAt: serverTimestamp(),
+                dueAt: customDate && !Number.isNaN(customDate.getTime()) ? Timestamp.fromDate(customDate) : nextEvent ? Timestamp.fromDate(new Date(nextEvent.date + "T" + (nextEvent.startTime || "00:00") + ":00")) : null,
+                dueScheduleEventId: dueMode === "next-lesson" ? (nextEvent?.id || null) : null
+            };
+        });
 
-        if (currentSnapshot.exists()) {
+        if (currentSnapshot.exists() && currentSnapshot.data().status !== "completed" && !currentSnapshot.data().historyArchivedAt) {
             const oldLesson = currentSnapshot.data();
             const oldLessonId = oldLesson.lessonId || (typeof crypto !== "undefined" && crypto.randomUUID
                 ? crypto.randomUUID()
@@ -1273,7 +1334,8 @@ window.lessonFlowCloud = {
             studentName: student.name,
             teacherUid: auth.currentUser.uid,
             status: "published",
-            publishedAt: serverTimestamp()
+            publishedAt: serverTimestamp(),
+            homeworkMetadata: homeworkMetadata
         });
         batch.set(progressRef, {
             studentUid: studentUid,

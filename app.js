@@ -447,6 +447,14 @@ window.addEventListener("lessonflow:cloud-lesson", function(event) {
         const lesson = { ...event.detail, student: event.detail.studentName || "Миша", cloudId: event.detail.cloudId };
         publishedLessons[lesson.student] = lesson;
         applyCloudProgress(lesson);
+        if (lesson.status === "completed") {
+            studentDashboardData.events = (studentDashboardData.events || []).map(function(item) { return item.id === lesson.scheduleEventId || item.lessonId === lesson.lessonId ? { ...item, status: "completed" } : item; });
+            if (studentDashboardData.program && lesson.programId === studentDashboardData.program.id && lesson.planLessonId) {
+                studentDashboardData.program.lessons = (studentDashboardData.program.lessons || []).map(function(item) { return item.id === lesson.planLessonId ? { ...item, status: "completed" } : item; });
+                const next = studentDashboardData.program.lessons.find(function(item) { return !["completed", "skipped"].includes(item.status); });
+                if (next) studentDashboardData.program.currentLessonNumber = next.lessonNumber;
+            }
+        }
     } else {
         delete publishedLessons[selectedStudentRecord?.name || "Миша"];
         activePublishedLesson = null;
@@ -458,6 +466,14 @@ window.addEventListener("lessonflow:cloud-lesson", function(event) {
     }
     if (mishaScreen.classList.contains("active") || teacherScreen.classList.contains("active")) renderTeacherStudentFeedback();
     if (selectedStudentRecord && mishaScreen.classList.contains("active")) renderStudentCard(selectedStudentRecord);
+});
+
+window.addEventListener("lessonflow:student-schedule", function(event) {
+    studentDashboardData.events = Array.isArray(event.detail) ? event.detail : [];
+    if (!studentScreen.classList.contains("active")) return;
+    const active = document.querySelector('#student-screen .student-nav-item.is-active[data-student-nav]')?.dataset.studentNav;
+    if (active === "lessons" || active === "homework") { const section = document.getElementById("student-section-content"); section.replaceChildren(); active === "lessons" ? renderStudentLessonsScreen(section) : renderStudentHomeworkScreen(section); applyStudentDesignSystem(section); }
+    else renderStudentDashboard();
 });
 
 window.addEventListener("lessonflow:cloud-progress", function(event) {
@@ -1213,6 +1229,9 @@ function openScheduleDetails(event) {
     document.getElementById("schedule-open-student").hidden = !isFirebaseMode();
     document.getElementById("schedule-edit").hidden = !isFirebaseMode();
     document.getElementById("schedule-cancel").hidden = !isFirebaseMode();
+    const complete = document.getElementById("schedule-complete");
+    const eventTime = new Date(event.date + "T" + (event.startTime || "00:00") + ":00").getTime();
+    complete.hidden = !isFirebaseMode() || event.status === "completed" || event.status === "cancelled" || !event.lessonId || eventTime > Date.now();
     document.getElementById("schedule-details-modal").hidden = false;
 }
 
@@ -1235,6 +1254,13 @@ document.getElementById("schedule-open-student").addEventListener("click", funct
 document.getElementById("schedule-prepare").addEventListener("click", function() { if (selectedScheduleEvent) { document.getElementById("schedule-details-modal").hidden = true; openScheduleLesson(selectedScheduleEvent); } });
 document.getElementById("schedule-edit").addEventListener("click", function() { if (selectedScheduleEvent) { document.getElementById("schedule-details-modal").hidden = true; openScheduleForm(selectedScheduleEvent); } });
 document.getElementById("schedule-cancel").addEventListener("click", async function() { if (!selectedScheduleEvent) return; try { await window.lessonFlowCloud.cancelScheduleEvent(selectedScheduleEvent.id); document.getElementById("schedule-details-modal").hidden = true; } catch (error) { console.error("Schedule cancel error:", error); } });
+document.getElementById("schedule-complete").addEventListener("click", async function() {
+    if (!selectedScheduleEvent || !window.confirm("Завершить проведённый урок? Домашнее задание останется доступно ученику.")) return;
+    const button = this; button.disabled = true;
+    try { await window.lessonFlowCloud.completeScheduledLesson(selectedScheduleEvent.id); document.getElementById("schedule-details-modal").hidden = true; }
+    catch (error) { console.error("Lesson completion error:", error); window.alert(error.code === "failed-precondition" ? "Сначала опубликуйте материалы этого занятия." : "Не удалось завершить урок. Попробуйте ещё раз."); }
+    finally { button.disabled = false; }
+});
 
 function cloudLessonStateKey(lesson) {
     return lesson.cloudId ? lesson.student + "-cloud" : lesson.student + "-" + lesson.publishedAt;
@@ -2392,7 +2418,7 @@ function renderStudentProgramScreen(container) {
     studentSectionHeading(container, "Моя программа", "Твой маршрут обучения"); const program = studentDashboardData.program; if (!program) { addTextElement(container, "p", "student-section-empty", studentDashboardData.programError ? "Не удалось загрузить программу." : "Программа пока не назначена."); return; } const lessons = program.lessons || []; const completed = lessons.filter(function(item) { return item.status === "completed"; }).length; const total = Number(program.totalLessons || lessons.length); const hero = document.createElement("article"); hero.className = "student-program-hero"; const copy = document.createElement("div"); addTextElement(copy, "p", "card-label", "ТЕКУЩАЯ ПРОГРАММА"); addTextElement(copy, "h3", "", program.title || program.mainCourse || "Программа обучения"); const current = lessons.find(function(item) { return Number(item.lessonNumber) === Number(program.currentLessonNumber); }); if (current) addTextElement(copy, "strong", "", "L" + current.lessonNumber + " · " + (current.title || "Текущий урок")); addTextElement(copy, "p", "", completed + " из " + total + " уроков"); copy.appendChild(studentProgressBar(total ? Math.round(completed / total * 100) : 0)); const currentEvent = current ? (studentDashboardData.events || []).find(function(event) { return event.programId === program.id && event.planLessonId === current.id && studentLessonForScheduleEvent(event); }) : null; const currentActualLesson = currentEvent ? studentLessonForScheduleEvent(currentEvent) : null; const open = addTextElement(copy, "button", "student-action student-action-orange", currentActualLesson ? "Открыть урок" : "Урок ещё не опубликован"); open.type = "button"; open.disabled = !currentActualLesson; open.title = currentActualLesson ? "Открыть урок" : "Материалы появятся после подготовки преподавателем"; open.addEventListener("click", function() { if (currentActualLesson) { studentLessonReturnSection = "program"; openPublishedLesson(currentActualLesson, false); } }); const art = document.createElement("div"); art.className = "student-program-hero-art"; const image = document.createElement("img"); image.src = "assets/student-dashboard/illustrations/study-now-illustration.png"; image.alt = ""; art.appendChild(image); hero.append(copy, art); container.appendChild(hero); const list = document.createElement("section"); list.className = "student-program-list"; addTextElement(list, "h3", "", "Программа занятий"); lessons.slice().sort(function(a,b) { return Number(a.lessonNumber) - Number(b.lessonNumber); }).forEach(function(item) { const row = document.createElement("article"); const rawStatus = item.status || "planned"; const status = rawStatus === "planned" && Number(item.lessonNumber) === Number(program.currentLessonNumber) ? "current" : rawStatus; row.className = "student-program-lesson-row is-" + status; const code = addTextElement(row, "span", "student-program-code", status === "completed" ? "✓" : "L" + item.lessonNumber); if (status === "completed") code.setAttribute("aria-label", "L" + item.lessonNumber + " пройден"); const text = document.createElement("div"); addTextElement(text, "strong", "", item.title || "Урок программы"); const labels = { completed: "Пройдено", current: "Сейчас по программе", prepared: "Готов", scheduled: "Запланирован", planned: "По плану", skipped: "Пропущен" }; let statusText = labels[status] || labels.planned; if (status === "scheduled" && item.scheduledDate) statusText += " · " + new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(new Date(item.scheduledDate + "T00:00:00")); addTextElement(text, "small", "", statusText); row.appendChild(text); list.appendChild(row); }); container.appendChild(list);
 }
 function renderStudentHomeworkScreen(container) {
-    studentSectionHeading(container, "Домашние задания", "Все задания текущего урока"); const lesson = studentCurrentLesson(); const groups = [["returned", "Нужно исправить"], ["todo", "Нужно сделать"], ["submitted", "Отправлено на проверку"], ["completed", "Выполнено"]]; const items = studentHomeworkItems(); groups.forEach(function(group) { const matches = items.filter(function(item) { return item.status === group[0]; }); if (!matches.length) return; const section = document.createElement("section"); section.className = "student-homework-group"; addTextElement(section, "h3", "", group[1]); matches.forEach(function(item) { const row = document.createElement("article"); row.className = "student-homework-row is-" + item.status; const icon = document.createElement("img"); icon.src = "assets/student-dashboard/icons/" + (item.status === "returned" ? "icon-warning.png" : item.status === "completed" ? "icon-check.png" : "icon-notebook.png"); icon.alt = ""; row.appendChild(icon); const copy = document.createElement("div"); addTextElement(copy, "strong", "", item.block.title || "Задание"); if (item.status === "returned" && item.submission?.teacherComment) addTextElement(copy, "small", "", "Комментарий: «" + item.submission.teacherComment + "»"); row.appendChild(copy); const action = addTextElement(row, "button", "student-action student-action-blue", item.status === "returned" ? "Исправить" : item.status === "todo" ? "Начать" : "Открыть"); action.type = "button"; action.addEventListener("click", function() { if (lesson) openPublishedLesson(lesson, false, item.block.id); }); section.appendChild(row); }); container.appendChild(section); }); if (!items.length) addTextElement(container, "p", "student-section-empty", "Для текущего урока домашних заданий нет.");
+    studentSectionHeading(container, "Домашние задания", "Все задания текущего урока"); const lesson = studentCurrentLesson(); const groups = [["returned", "Нужно исправить"], ["todo", "Нужно сделать"], ["submitted", "Отправлено на проверку"], ["completed", "Выполнено"]]; const items = studentHomeworkItems(); groups.forEach(function(group) { const matches = items.filter(function(item) { return item.status === group[0]; }); if (!matches.length) return; const section = document.createElement("section"); section.className = "student-homework-group"; addTextElement(section, "h3", "", group[1]); matches.forEach(function(item) { const row = document.createElement("article"); row.className = "student-homework-row is-" + item.status; const icon = document.createElement("img"); icon.src = "assets/student-dashboard/icons/" + (item.status === "returned" ? "icon-warning.png" : item.status === "completed" ? "icon-check.png" : "icon-notebook.png"); icon.alt = ""; row.appendChild(icon); const copy = document.createElement("div"); addTextElement(copy, "strong", "", item.block.title || "Задание"); if (item.block.description) addTextElement(copy, "p", "student-homework-description", item.block.description); appendHomeworkTiming(copy, lesson, item.block); if (item.status === "returned" && item.submission?.teacherComment) addTextElement(copy, "small", "", "Комментарий: «" + item.submission.teacherComment + "»"); row.appendChild(copy); const action = addTextElement(row, "button", "student-action student-action-blue", item.status === "returned" ? "Исправить" : item.status === "todo" ? "Начать" : "Открыть"); action.type = "button"; action.addEventListener("click", function() { if (lesson) openPublishedLesson(lesson, false, item.block.id); }); section.appendChild(row); }); container.appendChild(section); }); if (!items.length) addTextElement(container, "p", "student-section-empty", "Для текущего урока домашних заданий нет.");
 }
 
 function vocabularyDictionaryStatus(card) {
@@ -2535,7 +2561,19 @@ function renderStudentVocabularyScreen(container) {
     if (summary.totalCards > 0) { const start = addTextElement(action, "button", "student-action student-action-orange", session.status === "in-progress" ? "Продолжить" : summary.reviewCount > 0 && summary.newCount === 0 ? "Повторить слова" : "Начать"); start.type = "button"; start.addEventListener("click", function() { startVocabularyTrainer(session); }); }
     container.appendChild(action); renderExtraVocabularyReview(container); renderStudentVocabularyDictionary(container);
 }
-function renderStudentProgressScreen(container) { studentSectionHeading(container, "Прогресс и достижения", "Результаты, серии и важные этапы"); const program = studentDashboardData.program; const lessons = program?.lessons || []; const completedLessons = lessons.filter(function(item) { return item.status === "completed"; }).length; const total = Number(program?.totalLessons || lessons.length || 60); const completedTasks = cloudSubmissions.filter(function(item) { return ["submitted","verified"].includes(item.status); }).length + (cloudProgress.completedBlockIds || []).length; const vocabulary = studentDashboardData.vocabulary?.assignment || {}; const vocabularyMastered = Number(vocabulary.masteredCount || 0); const streak = Math.max(0, Number(firebaseProfile?.streakDays || 0)); const metrics = [[completedLessons + " из " + total, "Уроков"], [completedTasks, "Заданий выполнено"]]; if (vocabularyMastered || Number(vocabulary.totalCards || 0)) metrics.push([vocabularyMastered, "Слов освоено"]); if (streak) metrics.push([streak + " дней", "Серия успеха"]); const cards = document.createElement("div"); cards.className = "student-metric-grid"; metrics.forEach(function(item) { const card = document.createElement("article"); addTextElement(card, "strong", "", item[0]); addTextElement(card, "span", "", item[1]); cards.appendChild(card); }); container.appendChild(cards); const grid = document.createElement("div"); grid.className = "student-achievement-grid"; [["badge-streak.png", streak + " дней", "Серия успеха", false], ["badge-stars.png", completedLessons + " уроков", "Путь ученика", completedLessons < 1], ["badge-stars.png", "10 уроков", "Первая десятка", completedLessons < 10]].forEach(function(item) { const card = document.createElement("article"); card.className = "student-achievement-card" + (item[3] ? " is-locked" : ""); const image = document.createElement("img"); image.src = "assets/student-dashboard/decorative/" + item[0]; image.alt = ""; card.appendChild(image); addTextElement(card, "strong", "", item[1]); addTextElement(card, "span", "", item[2]); grid.appendChild(card); }); container.appendChild(grid); }
+function renderStudentProgressScreen(container) {
+    studentSectionHeading(container, "Прогресс и достижения", "Результаты, серии и важные этапы");
+    const program = studentDashboardData.program; const lessons = program?.lessons || [];
+    const completedLessons = lessons.filter(function(item) { return item.status === "completed"; }).length;
+    const total = Number(program?.totalLessons || lessons.length || 60);
+    const completedTasks = cloudSubmissions.filter(function(item) { return ["submitted","verified"].includes(item.status); }).length + (cloudProgress.completedBlockIds || []).length;
+    const completedClasses = (studentDashboardData.events || []).filter(function(item) { return item.status === "completed"; }).length;
+    const vocabulary = studentDashboardData.vocabulary?.assignment || {}; const vocabularyMastered = Number(vocabulary.masteredCount || 0); const streak = Math.max(0, Number(firebaseProfile?.streakDays || 0));
+    const metrics = [[completedClasses, "Завершённых занятий"], [completedLessons + " из " + total, "Уроков программы"], [completedTasks, "Заданий выполнено"]];
+    if (vocabularyMastered || Number(vocabulary.totalCards || 0)) metrics.push([vocabularyMastered, "Слов освоено"]); if (streak) metrics.push([streak + " дней", "Серия успеха"]);
+    const cards = document.createElement("div"); cards.className = "student-metric-grid"; metrics.forEach(function(item) { const card = document.createElement("article"); addTextElement(card, "strong", "", item[0]); addTextElement(card, "span", "", item[1]); cards.appendChild(card); }); container.appendChild(cards);
+    const grid = document.createElement("div"); grid.className = "student-achievement-grid"; [["badge-streak.png", streak + " дней", "Серия успеха", false], ["badge-stars.png", completedLessons + " уроков программы", "Путь ученика", completedLessons < 1], ["badge-stars.png", "10 уроков программы", "Первая десятка", completedLessons < 10]].forEach(function(item) { const card = document.createElement("article"); card.className = "student-achievement-card" + (item[3] ? " is-locked" : ""); const image = document.createElement("img"); image.src = "assets/student-dashboard/decorative/" + item[0]; image.alt = ""; card.appendChild(image); addTextElement(card, "strong", "", item[1]); addTextElement(card, "span", "", item[2]); grid.appendChild(card); }); container.appendChild(grid);
+}
 function renderStudentMessagesScreen(container, keepScroll) {
     studentSectionHeading(container, "Сообщения", "Написать преподавателю");
     const student = studentDashboardData.student;
@@ -2842,10 +2880,11 @@ function renderStudentLesson() {
         const heading = document.createElement("div");
         heading.className = "student-stage-heading";
         addTextElement(heading, "h3", "", isHomework ? "Домашнее задание" : block.title);
-        addTextElement(heading, "span", "student-stage-time", (block.duration || block.time || 0) + " минут");
+        if (!isHomework) addTextElement(heading, "span", "student-stage-time", (block.duration || block.time || 0) + " минут");
         content.appendChild(heading);
 
         if (isHomework && block.title !== "Домашнее задание") addTextElement(content, "h4", "", block.title);
+        if (isHomework) appendHomeworkTiming(content, lesson, block);
 
         const blockType = normalizeMatchText(block.type);
         const blockService = normalizeMatchText(block.service);
@@ -3009,6 +3048,41 @@ function lessonHomeworkBlocks(lesson) {
     return lesson && Array.isArray(lesson.blocks) ? lesson.blocks.filter(function(block) {
         return String(block.type || "").toLocaleLowerCase("ru").includes("домашнее задание");
     }) : [];
+}
+
+function lessonDateValue(value) {
+    if (!value) return null;
+    if (typeof value.toDate === "function") return value.toDate();
+    if (value.seconds) return new Date(value.seconds * 1000);
+    const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function homeworkTiming(lesson, block) {
+    const metadata = lesson?.homeworkMetadata?.[block.id] || {};
+    const assignedAt = lessonDateValue(metadata.assignedAt || block.assignedAt || lesson?.publishedAt || lesson?.date);
+    const dueMode = metadata.homeworkDueMode || block.homeworkDueMode || "next-lesson";
+    let dueAt = lessonDateValue(metadata.dueAt || block.dueAt);
+    if (dueMode === "next-lesson") {
+        const events = firebaseProfile?.role === "student" ? (studentDashboardData.events || []) : cloudScheduleEvents;
+        const linked = metadata.dueScheduleEventId ? events.find(function(event) { return event.id === metadata.dueScheduleEventId && event.status !== "cancelled"; }) : null;
+        const anchor = String(lesson?.date || "") + "T23:59";
+        const next = linked || events.filter(function(event) { return event.studentDocId === lesson?.studentDocId && event.status !== "cancelled" && (event.date + "T" + (event.startTime || "00:00")) > anchor; }).sort(function(a,b) { return (a.date + a.startTime).localeCompare(b.date + b.startTime); })[0];
+        dueAt = next ? new Date(next.date + "T" + (next.startTime || "00:00") + ":00") : null;
+    }
+    return { assignedAt: assignedAt, dueAt: dueAt, dueMode: dueMode };
+}
+
+function homeworkDateLabel(value, includeTime) {
+    if (!value) return "";
+    return new Intl.DateTimeFormat("ru-RU", includeTime ? { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" } : { day:"numeric", month:"long" }).format(value).replace(",", " ·");
+}
+
+function appendHomeworkTiming(container, lesson, block) {
+    const timing = homeworkTiming(lesson, block);
+    const meta = document.createElement("div"); meta.className = "homework-timing";
+    if (timing.assignedAt) addTextElement(meta, "small", "", "Назначено: " + homeworkDateLabel(timing.assignedAt, false));
+    addTextElement(meta, "small", "", timing.dueAt ? "Сдать до: " + homeworkDateLabel(timing.dueAt, true) : "Срок: до следующего занятия");
+    container.appendChild(meta);
 }
 
 function historySortTime(lesson) {
@@ -3291,7 +3365,7 @@ function renderStudentCard(student) {
         const list = document.createElement("div"); list.className = "detail-list";
         homework.forEach(function(block) {
             const row = document.createElement("article"); row.className = "detail-row homework-detail-row";
-            const text = document.createElement("div"); addTextElement(text, "strong", "", block.title || "Домашнее задание"); addTextElement(text, "p", "", block.description || "Описание не указано"); row.appendChild(text);
+            const text = document.createElement("div"); addTextElement(text, "strong", "", block.title || "Домашнее задание"); addTextElement(text, "p", "", block.description || "Описание не указано"); appendHomeworkTiming(text, lesson, block); row.appendChild(text);
             const completed = Boolean(result && result.state.completedBlocks[block.id]); addTextElement(row, "span", completed ? "topic-status status-confident" : "topic-status status-not-done", completed ? "Выполнено" : "Не выполнено"); list.appendChild(row);
         }); content.appendChild(list);
     });
@@ -4324,6 +4398,8 @@ document.getElementById("add-block-button").addEventListener("click", function()
     customBlockForm.reset();
     customBlockForm.elements.time.value = 10;
     customBlockForm.elements.submissionType.value = "none";
+    customBlockForm.elements.homeworkDueMode.value = "next-lesson";
+    updateHomeworkDeadlineFields();
     document.getElementById("custom-block-title").textContent = "Свой блок";
     customBlockForm.querySelector('[type="submit"]').textContent = "Добавить";
     customBlockModal.hidden = false;
@@ -4345,11 +4421,26 @@ function openLessonBlockEditor(block) {
     const submissionType = block.submissionType || "none";
     if (![...submissionSelect.options].some(function(option) { return option.value === submissionType; })) submissionSelect.add(new Option(submissionType, submissionType));
     submissionSelect.value = submissionType;
+    customBlockForm.elements.homeworkDueMode.value = block.homeworkDueMode === "custom" ? "custom" : "next-lesson";
+    customBlockForm.elements.homeworkDueDate.value = block.homeworkDueDate || "";
+    customBlockForm.elements.homeworkDueTime.value = block.homeworkDueTime || "18:00";
+    updateHomeworkDeadlineFields();
     document.getElementById("custom-block-title").textContent = "Редактировать этап";
     customBlockForm.querySelector('[type="submit"]').textContent = "Сохранить изменения";
     customBlockModal.hidden = false;
     customBlockForm.elements.title.focus();
 }
+
+function updateHomeworkDeadlineFields() {
+    const homework = customBlockForm.elements.type.value === "Домашнее задание";
+    const fieldset = document.getElementById("homework-deadline-fields");
+    const custom = document.getElementById("homework-custom-deadline");
+    fieldset.hidden = !homework;
+    custom.hidden = !homework || customBlockForm.elements.homeworkDueMode.value !== "custom";
+    customBlockForm.elements.homeworkDueDate.required = homework && !custom.hidden;
+}
+customBlockForm.elements.type.addEventListener("change", updateHomeworkDeadlineFields);
+customBlockForm.addEventListener("change", function(event) { if (event.target.name === "homeworkDueMode") updateHomeworkDeadlineFields(); });
 
 function closeCustomBlockModal() {
     customBlockModal.hidden = true;
@@ -4365,7 +4456,7 @@ customBlockModal.addEventListener("click", function(event) {
 
 function applyLessonBlockEdit(edit) {
     const plan = getCurrentPlan(); const block = plan.find(function(item) { return item.id === edit.blockId; }); if (!block) return;
-    Object.assign(block, { title: edit.title, type: edit.type, description: edit.description, time: edit.time, submissionType: edit.submissionType });
+    Object.assign(block, { title: edit.title, type: edit.type, description: edit.description, time: edit.time, submissionType: edit.submissionType, homeworkDueMode: edit.type === "Домашнее задание" ? edit.homeworkDueMode : undefined, homeworkDueDate: edit.type === "Домашнее задание" && edit.homeworkDueMode === "custom" ? edit.homeworkDueDate : undefined, homeworkDueTime: edit.type === "Домашнее задание" && edit.homeworkDueMode === "custom" ? edit.homeworkDueTime : undefined });
     if (block.instruction !== undefined) block.instruction = edit.description;
     if (block.duration !== undefined) block.duration = edit.time;
     savePlans(); customBlockModal.hidden = true; editingLessonBlockId = null; pendingLessonBlockEdit = null; renderLessonPlan();
@@ -4377,7 +4468,7 @@ customBlockForm.addEventListener("submit", function(event) {
     const formData = new FormData(customBlockForm);
     if (editingLessonBlockId) {
         const plan = getCurrentPlan(); const existing = plan.find(function(item) { return item.id === editingLessonBlockId; }); if (!existing) return;
-        const edit = { blockId: existing.id, title: formData.get("title").trim(), type: formData.get("type"), description: formData.get("description").trim(), time: Math.max(1, Number(formData.get("time")) || 10), submissionType: formData.get("submissionType") || "none" };
+        const edit = { blockId: existing.id, title: formData.get("title").trim(), type: formData.get("type"), description: formData.get("description").trim(), time: Math.max(1, Number(formData.get("time")) || 10), submissionType: formData.get("submissionType") || "none", homeworkDueMode: formData.get("homeworkDueMode") || "next-lesson", homeworkDueDate: formData.get("homeworkDueDate") || "", homeworkDueTime: formData.get("homeworkDueTime") || "18:00" };
         const submissionTypeChanged = (existing.submissionType || "none") !== edit.submissionType;
         const hasSubmission = cloudSubmissions.some(function(submission) { return submission.blockId === existing.id && ["submitted", "verified", "returned"].includes(submission.status); });
         if (submissionTypeChanged && hasSubmission) { pendingLessonBlockEdit = edit; document.getElementById("block-submission-warning-modal").hidden = false; return; }
@@ -4390,6 +4481,9 @@ customBlockForm.addEventListener("submit", function(event) {
         description: formData.get("description").trim(),
         audience: "student",
         submissionType: formData.get("submissionType") || "none",
+        homeworkDueMode: formData.get("type") === "Домашнее задание" ? (formData.get("homeworkDueMode") || "next-lesson") : undefined,
+        homeworkDueDate: formData.get("type") === "Домашнее задание" && formData.get("homeworkDueMode") === "custom" ? formData.get("homeworkDueDate") : undefined,
+        homeworkDueTime: formData.get("type") === "Домашнее задание" && formData.get("homeworkDueMode") === "custom" ? (formData.get("homeworkDueTime") || "18:00") : undefined,
         time: Math.max(1, Number(formData.get("time")) || 10)
     });
     customBlockForm.reset();

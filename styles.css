@@ -1413,6 +1413,17 @@ h2 {
 .student-homework-row strong, .student-homework-row small { display: block; }
 .student-homework-row small { margin-top: 4px; color: #9a5145; }
 .student-homework-row .student-action { margin: 0; }
+.student-homework-description { margin: 4px 0 0; color: #5f6e82; font-size: 14px; }
+.homework-timing { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 7px; color: #7c879e; }
+.homework-timing small { margin: 0; color: inherit; font-size: 12px; }
+.student-lesson-stage.is-homework { grid-template-columns: minmax(0,1fr); padding: 18px 20px; }
+.student-lesson-stage.is-homework .student-stage-number { display: none; }
+.student-lesson-stage.is-homework .student-stage-description { margin: 8px 0; }
+.homework-deadline-fields { display: grid; gap: 10px; padding: 14px; border: 1px solid #ded7c9; border-radius: 14px; }
+.homework-deadline-fields[hidden] { display: none; }
+.homework-deadline-fields > label { display: flex; align-items: center; gap: 8px; }
+.homework-custom-deadline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.homework-custom-deadline[hidden] { display: none; }
 .student-vocabulary-stats, .student-metric-grid, .student-achievement-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
 .student-vocabulary-stats article, .student-metric-grid article, .student-achievement-card { padding: 22px; border: 1px solid rgba(220,170,70,.27); border-radius: 20px; background: linear-gradient(145deg,#fffdf8,#fff4df); box-shadow: 0 9px 24px rgba(48,40,20,.08); }
 .student-vocabulary-stats strong, .student-vocabulary-stats span, .student-metric-grid strong, .student-metric-grid span, .student-achievement-card strong, .student-achievement-card span { display: block; }

@@ -278,7 +278,7 @@
     <div id="schedule-details-modal" class="modal-backdrop" hidden>
         <section class="material-modal small-modal" role="dialog" aria-modal="true" aria-labelledby="schedule-details-title">
             <h2 id="schedule-details-title">Занятие</h2><div id="schedule-details-content"></div>
-            <div class="schedule-detail-actions"><button id="schedule-open-student" class="secondary-button" type="button">Открыть ученика</button><button id="schedule-prepare" class="main-button" type="button">Подготовить урок</button><button id="schedule-edit" class="secondary-button" type="button">Редактировать</button><button id="schedule-cancel" class="delete-link" type="button">Отменить занятие</button><button id="schedule-close" class="secondary-button" type="button">Закрыть</button></div>
+            <div class="schedule-detail-actions"><button id="schedule-open-student" class="secondary-button" type="button">Открыть ученика</button><button id="schedule-prepare" class="main-button" type="button">Подготовить урок</button><button id="schedule-complete" class="main-button" type="button" hidden>Завершить урок</button><button id="schedule-edit" class="secondary-button" type="button">Редактировать</button><button id="schedule-cancel" class="delete-link" type="button">Отменить занятие</button><button id="schedule-close" class="secondary-button" type="button">Закрыть</button></div>
         </section>
     </div>
 
@@ -535,6 +535,15 @@
                             <option value="audio">Аудиоответ</option>
                         </select>
                     </label>
+                    <fieldset id="homework-deadline-fields" class="homework-deadline-fields" hidden>
+                        <legend>Срок</legend>
+                        <label><input type="radio" name="homeworkDueMode" value="next-lesson" checked> До следующего урока</label>
+                        <label><input type="radio" name="homeworkDueMode" value="custom"> Другой срок</label>
+                        <div id="homework-custom-deadline" class="homework-custom-deadline" hidden>
+                            <label>Дата<input name="homeworkDueDate" type="date"></label>
+                            <label>Время<input name="homeworkDueTime" type="time" value="18:00"></label>
+                        </div>
+                    </fieldset>
                     <div class="modal-actions">
                         <button type="submit" class="main-button">Добавить</button>
                         <button id="cancel-custom-block" type="button" class="secondary-button">Отмена</button>
