@@ -60,6 +60,7 @@ const youtubeSearchQuery = document.getElementById("youtube-search-query");
 const youtubeSearchButton = document.getElementById("youtube-search-button");
 const youtubeSearchStatus = document.getElementById("youtube-search-status");
 const youtubeSearchResults = document.getElementById("youtube-search-results");
+const findYoutubeVideoButton = document.getElementById("find-youtube-video-button");
 const exerciseSearchPanel = document.getElementById("exercise-search-panel");
 const exerciseSearchQuery = document.getElementById("exercise-search-query");
 const exerciseResourceUrl = document.getElementById("exercise-resource-url");
@@ -179,6 +180,7 @@ let deletingMaterialId = null;
 let recommendationLimit = 6;
 let recommendationFocusId = null;
 let findMoreFocusItem = null;
+let youtubeSearchFromLibrary = false;
 let previewYoutubeMaterial = null;
 let checkedExerciseMaterial = null;
 let activeGameBlock = null;
@@ -3813,12 +3815,12 @@ document.getElementById("close-history-lesson").addEventListener("click", closeH
 document.getElementById("close-history-lesson-icon").addEventListener("click", closeHistoryLesson);
 historyLessonModal.addEventListener("click", function(event) { if (event.target === historyLessonModal) closeHistoryLesson(); });
 function openFindMorePanel(focusItem) {
-    findMoreFocusItem = focusItem; findMoreMessage.textContent = "";
+    findMoreFocusItem = focusItem; youtubeSearchFromLibrary = false; findMoreMessage.textContent = "";
     youtubeSearchPanel.hidden = true; youtubeSearchResults.replaceChildren(); youtubeSearchStatus.textContent = "";
     exerciseSearchPanel.hidden = true; exerciseResourceUrl.value = ""; exerciseResourceStatus.textContent = ""; exerciseResourceActions.hidden = true; checkedExerciseMaterial = null;
     document.getElementById("find-more-topic").textContent = focusItem.title; findMoreModal.hidden = false;
 }
-function closeFindMorePanel() { findMoreModal.hidden = true; findMoreFocusItem = null; findMoreMessage.textContent = ""; youtubeSearchPanel.hidden = true; youtubeSearchResults.replaceChildren(); exerciseSearchPanel.hidden = true; checkedExerciseMaterial = null; }
+function closeFindMorePanel() { findMoreModal.hidden = true; findMoreFocusItem = null; youtubeSearchFromLibrary = false; findMoreMessage.textContent = ""; youtubeSearchPanel.hidden = true; youtubeSearchResults.replaceChildren(); exerciseSearchPanel.hidden = true; checkedExerciseMaterial = null; }
 document.getElementById("close-find-more").addEventListener("click", closeFindMorePanel);
 findMoreModal.addEventListener("click", function(event) { if (event.target === findMoreModal) closeFindMorePanel(); });
 document.getElementById("find-more-video").addEventListener("click", function() {
@@ -3904,13 +3906,18 @@ function youtubeErrorMessage(response, payload) {
 
 function youtubeMaterialFromItem(item) {
     const videoId = item.id.videoId;
+    const librarySearch = youtubeSearchFromLibrary;
+    const topic = librarySearch ? youtubeSearchQuery.value.trim() : findMoreFocusItem?.title || "";
+    const subject = librarySearch && subjectFilter.value !== "all" ? subjectFilter.value : selectedStudentRecord?.subject || "Английский";
+    const level = librarySearch && levelFilter.value !== "all" ? levelFilter.value : selectedStudentRecord?.level || "";
+    const currentTopic = selectedStudentRecord ? selectedStudentDerivedState(selectedStudentRecord).current.topic : "";
     return {
         title: item.snippet.title,
-        type: "video",
-        subject: selectedStudentRecord.subject,
-        level: selectedStudentRecord.level,
-        topic: findMoreFocusItem.title,
-        tags: [findMoreFocusItem.title, selectedStudentDerivedState(selectedStudentRecord).current.topic].filter(Boolean).map(normalizeMatchText),
+        type: "Видео",
+        subject: subject,
+        level: level,
+        topic: topic,
+        tags: [topic, currentTopic].filter(Boolean).map(normalizeMatchText),
         description: item.snippet.description || "",
         service: "YouTube",
         url: "https://www.youtube.com/watch?v=" + videoId,
@@ -3967,6 +3974,13 @@ youtubeSearchForm.addEventListener("submit", async function(event) {
         renderYoutubeResults(Array.isArray(payload.items) ? payload.items.slice(0, 6) : []);
     } catch (error) { console.error("YouTube network error:", error); youtubeSearchStatus.textContent = "Не удалось связаться с YouTube. Проверьте интернет."; }
     finally { youtubeSearchButton.disabled = false; }
+});
+findYoutubeVideoButton.addEventListener("click", function() {
+    openFindMorePanel({ title: "Библиотека" });
+    youtubeSearchFromLibrary = true;
+    document.getElementById("find-more-video").click();
+    youtubeSearchQuery.value = "";
+    youtubeSearchQuery.focus();
 });
 document.getElementById("add-found-resource").addEventListener("click", function() {
     if (!findMoreFocusItem || !selectedStudentRecord) return;
