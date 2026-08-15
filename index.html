@@ -7,7 +7,7 @@
     <title>LessonFlow</title>
 
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=20260815-student-account">
+    <link rel="stylesheet" href="styles.css?v=20260815-login-redesign">
 </head>
 
 <body>
@@ -15,31 +15,31 @@
     <!-- ЭКРАН ВХОДА -->
     <section id="login-screen" class="screen active">
 
-        <div class="login-card">
-
-            <p class="small-title">PERSONAL LEARNING SPACE</p>
-
-            <h1>LessonFlow</h1>
-
-            <p class="subtitle">
-                Персональное пространство преподавателя и ученика
-            </p>
-
-            <form id="firebase-login-form" class="firebase-login-form" novalidate>
-                <label>Email<input id="login-email" name="email" type="email" autocomplete="email" required></label>
-                <label>Пароль<input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
-                <button id="firebase-login-button" class="main-button" type="submit">Войти</button>
-                <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
-            </form>
-
-            <div class="demo-login" hidden aria-hidden="true">
-                <p>Демо-режим</p>
-                <div class="login-buttons">
-                    <button id="teacher-login" class="secondary-button" type="button">Демо: преподаватель</button>
-                    <button id="student-login" class="secondary-button" type="button">Демо: Миша</button>
-                </div>
+        <div class="login-layout">
+            <div class="login-london" aria-hidden="true">
+                <img src="assets/student-dashboard/illustrations/sidebar-london.png" alt="">
             </div>
 
+            <div class="login-form-zone">
+                <div class="login-card">
+                    <h1 class="login-brand"><span>Lesson</span><strong>Flow</strong></h1>
+
+                    <form id="firebase-login-form" class="firebase-login-form" novalidate>
+                        <label><span class="login-field-label">Email</span><input id="login-email" name="email" type="email" autocomplete="email" placeholder="Email" required></label>
+                        <label><span class="login-field-label">Пароль</span><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Пароль" required></label>
+                        <button id="firebase-login-button" class="main-button" type="submit">Войти</button>
+                        <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+                    </form>
+
+                    <div class="demo-login" hidden aria-hidden="true">
+                        <p>Демо-режим</p>
+                        <div class="login-buttons">
+                            <button id="teacher-login" class="secondary-button" type="button">Демо: преподаватель</button>
+                            <button id="student-login" class="secondary-button" type="button">Демо: Миша</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </section>

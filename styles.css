@@ -2135,6 +2135,199 @@ html, body { max-width:100%; overflow-x:hidden; }
 .teacher-app .student-info, .teacher-app .teacher-work-row > div { min-width:0; }
 .teacher-app .student-info h3, .teacher-app .student-info p, .teacher-app .teacher-work-row span { word-break:normal; overflow-wrap:break-word; }
 .teacher-app .student-dashboard-grid { grid-template-columns:repeat(auto-fit,minmax(280px,360px)); justify-content:start; align-items:start; gap:16px; }
+
+/* Login screen: Student Dashboard visual language */
+#login-screen {
+    position: relative;
+    min-height: 100svh;
+    overflow: hidden;
+    padding: 0;
+    background: linear-gradient(135deg, #f4f8ff 0%, #fffaf1 58%, #eef5ff 100%);
+}
+
+#login-screen::before,
+#login-screen::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(3px);
+}
+
+#login-screen::before {
+    top: -18vw;
+    right: -10vw;
+    width: 42vw;
+    height: 42vw;
+    background: rgba(34, 106, 225, .08);
+}
+
+#login-screen::after {
+    right: 25%;
+    bottom: -24vw;
+    width: 38vw;
+    height: 38vw;
+    background: rgba(239, 155, 25, .09);
+}
+
+#login-screen.active { display: block; }
+
+.login-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 100%;
+    min-height: 100svh;
+    grid-template-columns: minmax(420px, 44%) minmax(0, 56%);
+}
+
+.login-london {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    overflow: hidden;
+    place-items: center;
+    background: #071a3d;
+}
+
+.login-london::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    box-shadow: inset -24px 0 42px rgba(5, 22, 55, .24);
+    pointer-events: none;
+}
+
+.login-london img {
+    width: 100%;
+    height: 100svh;
+    min-height: 620px;
+    object-fit: contain;
+    object-position: center;
+}
+
+.login-form-zone {
+    display: grid;
+    min-width: 0;
+    padding: clamp(32px, 6vw, 96px);
+    place-items: center;
+}
+
+#login-screen .login-card {
+    width: min(100%, 500px);
+    max-width: none;
+    padding: clamp(34px, 4vw, 56px);
+    border: 1px solid rgba(29, 72, 132, .09);
+    border-radius: 28px;
+    background: rgba(255, 253, 248, .88);
+    box-shadow: 0 24px 60px rgba(20, 48, 88, .12), inset 0 1px rgba(255, 255, 255, .92);
+    text-align: left;
+    backdrop-filter: blur(10px);
+}
+
+#login-screen .login-brand {
+    margin: 0 0 38px;
+    color: #132f57;
+    font-size: clamp(42px, 5vw, 62px);
+    font-weight: 800;
+    letter-spacing: -.045em;
+    line-height: 1;
+}
+
+#login-screen .login-brand strong { color: #ef9b19; font-weight: inherit; }
+
+#login-screen .firebase-login-form { gap: 18px; }
+#login-screen .firebase-login-form label { gap: 0; }
+
+.login-field-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+#login-screen .firebase-login-form input {
+    min-height: 62px;
+    padding: 0 20px;
+    border: 1px solid #cbd8ea;
+    border-radius: 18px;
+    background: #fbfdff;
+    color: #132f57;
+    font-size: 17px;
+    box-shadow: inset 0 2px 5px rgba(17, 49, 91, .04);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+#login-screen .firebase-login-form input::placeholder { color: #74849b; opacity: 1; }
+
+#login-screen .firebase-login-form input:focus {
+    outline: none;
+    border-color: #2673e8;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(38, 115, 232, .13), inset 0 1px 3px rgba(17, 49, 91, .03);
+}
+
+#firebase-login-button {
+    width: 100%;
+    min-height: 68px;
+    margin-top: 4px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: 22px;
+    background-color: #ef8c16;
+    background-image: url("assets/student-dashboard/buttons/btn-primary-orange-normal.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    text-shadow: 0 2px 5px rgba(92, 39, 0, .42);
+    box-shadow: none;
+}
+
+#firebase-login-button:hover:not(:disabled) {
+    background-image: url("assets/student-dashboard/buttons/btn-primary-orange-hover.png");
+    transform: translateY(-1px);
+}
+
+#firebase-login-button:active:not(:disabled) {
+    background-image: url("assets/student-dashboard/buttons/btn-primary-orange-pressed.png");
+    transform: translateY(1px);
+}
+
+#firebase-login-button:focus-visible { outline: 3px solid rgba(38, 115, 232, .42); outline-offset: 3px; }
+#firebase-login-button:disabled { opacity: .72; cursor: wait; }
+#login-screen .login-error { min-height: 20px; margin: -3px 4px 0; color: #a83b32; font-size: 14px; }
+
+@media (max-width: 980px) {
+    .login-layout { grid-template-columns: minmax(290px, 38%) minmax(0, 62%); }
+    .login-london img { min-height: 560px; }
+    .login-form-zone { padding: 34px; }
+    #login-screen .login-card { padding: 38px; }
+}
+
+@media (max-width: 700px) {
+    #login-screen { overflow: auto; }
+    .login-layout { display: block; min-height: 100svh; }
+    .login-london { height: clamp(280px, 48vh, 420px); }
+    .login-london::after { box-shadow: inset 0 -20px 34px rgba(5, 22, 55, .2); }
+    .login-london img { width: 100%; height: 100%; min-height: 0; object-position: center 58%; }
+    .login-form-zone { padding: 26px 18px 42px; }
+    #login-screen .login-card { width: min(100%, 500px); padding: 30px 22px; border-radius: 24px; }
+    #login-screen .login-brand { margin-bottom: 28px; font-size: clamp(40px, 13vw, 54px); }
+    #login-screen .firebase-login-form input { min-height: 58px; }
+    #firebase-login-button { min-height: 64px; }
+}
+
+@media (max-width: 380px) {
+    .login-london { height: 250px; }
+    .login-form-zone { padding-inline: 12px; }
+    #login-screen .login-card { padding-inline: 18px; }
+}
 .teacher-app .overview-summary-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
 .teacher-app .overview-summary-card { display:flex; min-height:118px; padding:16px 18px; flex-direction:column; justify-content:flex-start; gap:5px; }
 .teacher-app .overview-summary-card .card-label { margin:0 0 3px; line-height:1.25; }
